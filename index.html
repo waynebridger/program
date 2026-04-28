@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0b0b0d" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Lift" />
+<link rel="manifest" href="manifest.webmanifest" />
+<title>Lift</title>
+<style>
+:root {
+  --bg: #0b0b0d;
+  --surface: #16171b;
+  --surface-2: #1f2126;
+  --border: #2a2c33;
+  --text: #f1f2f4;
+  --muted: #8b8e97;
+  --accent: #e8ff5a;
+  --accent-2: #6ee7ff;
+  --danger: #ff5a6c;
+  --good: #66e07a;
+  --shadow: 0 1px 0 rgba(255,255,255,0.04) inset, 0 6px 20px rgba(0,0,0,0.35);
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+input, select { background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; color: var(--text); }
+input:focus, select:focus { outline: 2px solid var(--accent-2); outline-offset: 1px; }
+
+.app { max-width: 720px; margin: 0 auto; padding: 14px 14px 120px; }
+
+header.top {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 4px 14px;
+}
+.logo { font-weight: 800; font-size: 22px; letter-spacing: 0.5px; }
+.logo .dot { color: var(--accent); }
+.spacer { flex: 1; }
+.icon-btn {
+  background: var(--surface); border: 1px solid var(--border);
+  width: 40px; height: 40px; border-radius: 12px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 18px;
+}
+
+.day-bar {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+  padding: 10px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow);
+}
+.day-bar .label { font-size: 12px; color: var(--muted); padding: 6px 4px; width: 100%; }
+.day-chip {
+  flex: 1 1 calc(25% - 8px);
+  text-align: center;
+  background: var(--surface-2); color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 6px;
+  font-weight: 700; letter-spacing: 0.4px;
+}
+.day-chip.active { background: #2dd4bf; color: #000; border-color: #2dd4bf; }
+.day-chip.suggested:not(.active) { border-color: #2dd4bf; }
+
+.session-meta {
+  display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap;
+  margin: 4px 4px 12px;
+  color: var(--muted); font-size: 13px;
+}
+.session-meta .now { color: var(--text); font-weight: 600; }
+
+.exercise {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 18px; padding: 14px 14px 12px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow);
+}
+.exercise.done { border-color: rgba(102,224,122,0.4); }
+.ex-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.ex-name { font-size: 18px; font-weight: 700; flex: 1; min-width: 0; }
+.ex-num { color: var(--muted); font-size: 13px; }
+.ex-sub { color: var(--muted); font-size: 13px; margin-top: 4px; line-height: 1.4; }
+.ex-sub b { color: var(--text); font-weight: 600; }
+.pr { color: var(--accent); }
+.last { color: var(--accent-2); }
+
+.weight-row {
+  display: flex; align-items: center; gap: 8px;
+  margin: 12px 0 8px;
+}
+.weight-row label { font-size: 12px; color: var(--muted); }
+.weight-row .w-in {
+  flex: 1; font-size: 18px; font-weight: 700; text-align: center;
+  padding: 12px;
+}
+.weight-row .step {
+  width: 44px; height: 44px; border-radius: 12px;
+  background: var(--surface-2); border: 1px solid var(--border);
+  font-size: 20px; font-weight: 800;
+}
+.weight-row .unit { color: var(--muted); font-size: 13px; min-width: 28px; text-align: right; }
+
+.sets { display: grid; gap: 8px; }
+.set-row {
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 14px; padding: 10px;
+}
+.set-row.logged { border-color: rgba(102,224,122,0.45); background: rgba(102,224,122,0.06); }
+.set-line { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+.set-tag { font-size: 12px; color: var(--muted); font-weight: 600; letter-spacing: 0.5px; }
+.set-prev { font-size: 12px; color: var(--muted); }
+.set-prev b { color: var(--text); font-weight: 600; }
+.rep-grid { display: flex; gap: 6px; flex-wrap: wrap; }
+.rep-btn {
+  flex: 1 1 56px; min-width: 50px;
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 12px; padding: 12px 6px;
+  font-size: 16px; font-weight: 700;
+}
+.rep-btn.center { border-color: var(--accent-2); }
+.rep-btn.selected { background: var(--accent); color: #000; border-color: var(--accent); }
+.rep-btn.custom { color: var(--muted); }
+
+.row-actions { display: flex; gap: 8px; margin-top: 8px; }
+.row-actions .undo {
+  background: transparent; color: var(--muted); border: 1px solid var(--border);
+  border-radius: 10px; padding: 8px 10px; font-size: 12px;
+}
+
+.timer-bar {
+  position: fixed; left: 0; right: 0; bottom: 0;
+  padding: 10px 14px calc(env(safe-area-inset-bottom) + 10px);
+  background: linear-gradient(180deg, rgba(11,11,13,0) 0%, rgba(11,11,13,0.92) 35%, var(--bg) 100%);
+  display: flex; gap: 8px; align-items: center;
+  z-index: 5;
+}
+.timer-display {
+  flex: 1;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; padding: 10px 14px;
+  display: flex; align-items: center; gap: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.timer-display .big { font-size: 28px; font-weight: 800; letter-spacing: 0.5px; }
+.timer-display.warn .big { color: var(--accent); }
+.timer-display.low .big { color: var(--danger); }
+.timer-chip {
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 12px; padding: 10px 12px; font-weight: 700; font-size: 13px;
+}
+.timer-chip.active { background: var(--accent-2); color: #000; border-color: var(--accent-2); }
+.timer-stop {
+  background: var(--danger); color: #fff; border: 1px solid var(--danger);
+  border-radius: 12px; padding: 10px 14px; font-weight: 800;
+}
+
+.fab-row { display: flex; gap: 8px; justify-content: space-between; margin-top: 8px; }
+.btn {
+  flex: 1; padding: 14px; border-radius: 14px;
+  background: var(--surface); color: var(--text);
+  border: 1px solid var(--border); font-weight: 700; font-size: 15px;
+}
+.btn.primary { background: var(--accent); color: #000; border-color: var(--accent); }
+.btn.ghost { background: transparent; }
+.btn.warn { color: var(--danger); }
+
+/* Settings sheet */
+.sheet {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+  display: none; align-items: flex-end; justify-content: center; z-index: 10;
+}
+.sheet.open { display: flex; }
+.sheet-card {
+  background: var(--bg); width: 100%; max-width: 720px;
+  border-top-left-radius: 20px; border-top-right-radius: 20px;
+  padding: 14px 14px calc(env(safe-area-inset-bottom) + 14px);
+  max-height: 92vh; overflow-y: auto;
+  border: 1px solid var(--border);
+}
+.sheet-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.sheet-title { font-size: 18px; font-weight: 800; flex: 1; }
+.sheet-close {
+  background: var(--surface-2); border: 1px solid var(--border);
+  width: 36px; height: 36px; border-radius: 10px;
+}
+.section-title { font-size: 12px; color: var(--muted); margin: 14px 4px 6px; text-transform: uppercase; letter-spacing: 0.6px; }
+
+.ex-edit {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; padding: 10px; margin-bottom: 8px;
+}
+.ex-edit .row { display: grid; grid-template-columns: 1fr 80px 80px 80px; gap: 8px; align-items: center; }
+.ex-edit .row input, .ex-edit .row select { padding: 8px; }
+.ex-edit .actions { display: flex; gap: 8px; margin-top: 8px; }
+.ex-edit .actions button { flex: 1; padding: 10px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border); color: var(--text); }
+.ex-edit .actions .del { color: var(--danger); border-color: rgba(255,90,108,0.4); }
+
+.history-row { display: flex; justify-content: space-between; padding: 8px 4px; border-bottom: 1px solid var(--border); font-size: 13px; }
+.history-row:last-child { border-bottom: none; }
+
+.toast {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: calc(env(safe-area-inset-bottom) + 96px);
+  background: var(--surface); color: var(--text);
+  border: 1px solid var(--border); border-radius: 12px;
+  padding: 10px 14px; font-size: 13px; z-index: 20;
+  opacity: 0; transition: opacity 200ms ease;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; }
+
+.complete-banner {
+  background: rgba(102,224,122,0.1); border: 1px solid rgba(102,224,122,0.4);
+  color: var(--good); border-radius: 14px; padding: 12px;
+  margin-bottom: 12px; font-size: 14px; font-weight: 600;
+}
+
+.empty {
+  text-align: center; color: var(--muted); padding: 40px 20px;
+}
+
+@media (max-width: 380px) {
+  .rep-btn { flex: 1 1 48px; padding: 10px 4px; font-size: 15px; }
+  .ex-edit .row { grid-template-columns: 1fr 60px 60px 60px; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="logo">Lift<span class="dot">.</span></div>
+    <div class="spacer"></div>
+    <button class="icon-btn" id="historyBtn" title="History">H</button>
+    <button class="icon-btn" id="settingsBtn" title="Settings">&#9881;</button>
+  </header>
+
+  <div class="day-bar">
+    <div class="label">Today</div>
+    <button class="day-chip" data-day="UA">Upper A</button>
+    <button class="day-chip" data-day="LA">Lower A</button>
+    <button class="day-chip" data-day="UB">Upper B</button>
+    <button class="day-chip" data-day="LB">Lower B</button>
+  </div>
+
+  <div class="session-meta" id="sessionMeta"></div>
+  <div id="completeBanner"></div>
+  <div id="exerciseList"></div>
+
+  <div class="fab-row">
+    <button class="btn ghost" id="resetSessionBtn">Reset session</button>
+    <button class="btn primary" id="finishBtn">Finish workout</button>
+  </div>
+</div>
+
+<div class="timer-bar" id="timerBar">
+  <div class="timer-display" id="timerDisplay">
+    <span class="big" id="timerBig">--:--</span>
+    <span class="set-tag" id="timerLabel">REST</span>
+  </div>
+  <button class="timer-chip" data-secs="60">60</button>
+  <button class="timer-chip active" data-secs="90">90</button>
+  <button class="timer-chip" data-secs="120">2m</button>
+  <button class="timer-chip" data-secs="180">3m</button>
+  <button class="timer-stop" id="timerStop">Stop</button>
+</div>
+
+<div class="sheet" id="settingsSheet">
+  <div class="sheet-card">
+    <div class="sheet-head">
+      <div class="sheet-title">Settings</div>
+      <button class="sheet-close" data-close>X</button>
+    </div>
+
+    <div class="section-title">Edit exercises</div>
+    <select id="editDaySel">
+      <option value="UA">Upper A</option>
+      <option value="LA">Lower A</option>
+      <option value="UB">Upper B</option>
+      <option value="LB">Lower B</option>
+    </select>
+    <div id="editList" style="margin-top:10px;"></div>
+    <button class="btn" id="addExerciseBtn" style="margin-top:8px;">+ Add exercise</button>
+
+    <div class="section-title">Data</div>
+    <div style="display:flex; gap:8px;">
+      <button class="btn" id="exportBtn">Export JSON</button>
+      <button class="btn" id="importBtn">Import JSON</button>
+      <input type="file" id="importFile" accept="application/json" style="display:none" />
+    </div>
+    <button class="btn warn" id="wipeBtn" style="margin-top:8px;">Wipe all data</button>
+  </div>
+</div>
+
+<div class="sheet" id="historySheet">
+  <div class="sheet-card">
+    <div class="sheet-head">
+      <div class="sheet-title">History</div>
+      <button class="sheet-close" data-close>X</button>
+    </div>
+    <select id="historyDaySel">
+      <option value="UA">Upper A</option>
+      <option value="LA">Lower A</option>
+      <option value="UB">Upper B</option>
+      <option value="LB">Lower B</option>
+    </select>
+    <div id="historyList" style="margin-top:10px;"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// Storage
+// ============================================================
+const STORAGE_KEY = "lift.v2";
+const ROTATION = ["UA", "LA", "UB", "LB"];
+const DAY_LABEL = { UA: "Upper A", LA: "Lower A", UB: "Upper B", LB: "Lower B" };
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) { console.warn(e); }
+  return defaultState();
+}
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function defaultState() {
+  const plan = defaultPlan();
+  return {
+    plan,
+    history: seedHistory(plan),
+    currentSession: null,
+  };
+}
+
+// Seeds your last completed UA / LA / UB / LB sessions using the "TO NOW" numbers
+// you provided, so day-one rep buttons calibrate correctly and PRs surface.
+function seedHistory(plan) {
+  const today = new Date();
+  const daysAgo = (n) => new Date(today.getTime() - n * 86400000).toISOString();
+  // Order matters: oldest first. Last completed = LB so next suggested = UA.
+  const seed = (day, daysBack, byName) => {
+    const planForDay = plan[day];
+    const exercises = [];
+    for (const ex of planForDay) {
+      const sets = byName[ex.name];
+      if (!sets) continue; // skip exercises with no seed data (placeholders)
+      exercises.push({
+        id: ex.id,
+        name: ex.name,
+        weight: ex.weight,
+        unit: ex.unit,
+        countKind: ex.count,
+        sets: sets.map(c => ({ count: c })),
+      });
+    }
+    return { day, date: daysAgo(daysBack), exercises };
+  };
+  return [
+    seed("UA", 8, {
+      "Incline DB Bench":   [11, 8, 8, 8],
+      "Cable Fly":          [12, 10, 10],
+      "T-Bar Row":          [12, 9, 9],
+      "Lateral Raise":      [12, 11, 10],
+      "Face Pull":          [14, 12, 11, 11],
+      "Tricep Pushdown":    [14, 13, 11],
+      "Heavy DB Holds":     [60, 30, 20],
+    }),
+    seed("LA", 6, {
+      "Hack Squat":              [12, 12, 11],
+      "Leg Press":               [14, 14, 15],
+      "Bulgarian Split Squat":   [12, 10, 12],
+      "Leg Extension":           [12, 12, 11, 10],
+      "Seated Leg Curl":         [13, 11, 11],
+      "Standing Calf Raise":     [12, 12, 12, 12],
+    }),
+    seed("UB", 4, {
+      "Smith Incline Press":         [12, 10, 9, 10],
+      "Flat DB Bench":               [9, 8, 8, 8],
+      "Neutral-Grip Pulldown":       [13, 11, 9, 9],
+      "Seated DB Shoulder Press":    [10, 10, 10],
+      "OH Tricep Extension":         [11, 10, 10],
+    }),
+    seed("LB", 2, {
+      "RDL":                  [9, 8, 9],
+      "Hip Thrust":           [12, 12, 12],
+      "Lying Hamstring Curl": [10, 9, 9],
+      "DB Hold Lunges":       [24, 24, 24],
+      "Seated Calf Raise":    [12, 12, 12, 12],
+      "Farmers Carries":      [40, 40, 40],
+    }),
+  ];
+}
+
+function defaultPlan() {
+  return {
+    UA: [
+      { id: uid(), name: "Incline DB Bench",     weight: 70,    unit: "lb", sets: 4, count: "reps" },
+      { id: uid(), name: "Cable Fly",            weight: 12,    unit: "kg", sets: 3, count: "reps" },
+      { id: uid(), name: "T-Bar Row",            weight: 100,   unit: "lb", sets: 3, count: "reps" },
+      { id: uid(), name: "Lateral Raise",        weight: 6,     unit: "kg", sets: 3, count: "reps" },
+      { id: uid(), name: "Face Pull",            weight: 27.5,  unit: "kg", sets: 4, count: "reps" },
+      { id: uid(), name: "Tricep Pushdown",      weight: 17.5,  unit: "kg", sets: 3, count: "reps" },
+      { id: uid(), name: "Heavy DB Holds",       weight: 75,    unit: "lb", sets: 3, count: "secs" },
+    ],
+    LA: [
+      { id: uid(), name: "Hack Squat",           weight: 125,   unit: "lb", sets: 3, count: "reps" },
+      { id: uid(), name: "Leg Press",            weight: 60,    unit: "kg", sets: 3, count: "reps" },
+      { id: uid(), name: "Bulgarian Split Squat",weight: 35,    unit: "lb", sets: 3, count: "reps" },
+      { id: uid(), name: "Leg Extension",        weight: 65,    unit: "kg", sets: 4, count: "reps" },
+      { id: uid(), name: "Seated Leg Curl",      weight: 60,    unit: "kg", sets: 3, count: "reps" },
+      { id: uid(), name: "Standing Calf Raise",  weight: 180,   unit: "lb", sets: 4, count: "reps" },
+    ],
+    UB: [
+      { id: uid(), name: "Smith Incline Press",  weight: 90,    unit: "lb", sets: 4, count: "reps" },
+      { id: uid(), name: "Flat DB Bench",        weight: 70,    unit: "lb", sets: 4, count: "reps" },
+      { id: uid(), name: "Neutral-Grip Pulldown",weight: 65,    unit: "kg", sets: 4, count: "reps" },
+      { id: uid(), name: "Seated DB Shoulder Press", weight: 45, unit: "kg", sets: 3, count: "reps" },
+      { id: uid(), name: "OH Tricep Extension",  weight: 30,    unit: "kg", sets: 3, count: "reps" },
+      { id: uid(), name: "Bicep Finishers",      weight: 0,     unit: "kg", sets: 3, count: "reps" },
+      { id: uid(), name: "Wrist + Reverse Curls",weight: 0,     unit: "kg", sets: 3, count: "reps" },
+    ],
+    LB: [
+      { id: uid(), name: "RDL",                  weight: 140,   unit: "lb", sets: 3, count: "reps" },
+      { id: uid(), name: "Hip Thrust",           weight: 180,   unit: "lb", sets: 3, count: "reps" },
+      { id: uid(), name: "Lying Hamstring Curl", weight: 40,    unit: "kg", sets: 3, count: "reps" },
+      { id: uid(), name: "DB Hold Lunges",       weight: 20,    unit: "lb", sets: 3, count: "steps" },
+      { id: uid(), name: "Seated Calf Raise",    weight: 100,   unit: "lb", sets: 4, count: "reps" },
+      { id: uid(), name: "Farmers Carries",      weight: 60,    unit: "lb", sets: 3, count: "m" },
+    ],
+  };
+}
+
+function uid() { return Math.random().toString(36).slice(2, 10); }
+
+let state = loadState();
+
+// ============================================================
+// Helpers
+// ============================================================
+function $(sel, root) { return (root || document).querySelector(sel); }
+function $$(sel, root) { return Array.from((root || document).querySelectorAll(sel)); }
+
+function suggestNextDay() {
+  // Find the most recent completed day, then next in rotation.
+  if (!state.history.length) return "UA";
+  const last = state.history[state.history.length - 1].day;
+  const idx = ROTATION.indexOf(last);
+  return ROTATION[(idx + 1) % ROTATION.length];
+}
+
+function findLastSession(day, exId) {
+  for (let i = state.history.length - 1; i >= 0; i--) {
+    const h = state.history[i];
+    if (h.day !== day) continue;
+    const ex = h.exercises.find(e => e.id === exId);
+    if (ex) return { entry: h, exercise: ex };
+  }
+  return null;
+}
+
+// PR: best single set "score" at the highest weight ever used.
+// Score = count value (reps/secs/steps/meters). We also surface best at current weight.
+function findPR(day, exId, currentWeight) {
+  let bestEver = null;        // {weight, count}
+  let bestAtCurrent = null;   // {weight, count}
+  for (const h of state.history) {
+    if (h.day !== day) continue;
+    const ex = h.exercises.find(e => e.id === exId);
+    if (!ex) continue;
+    for (const s of ex.sets || []) {
+      if (!s || s.count == null) continue;
+      const cand = { weight: ex.weight, count: s.count };
+      if (!bestEver || cand.weight > bestEver.weight ||
+          (cand.weight === bestEver.weight && cand.count > bestEver.count)) {
+        bestEver = cand;
+      }
+      if (Math.abs(ex.weight - currentWeight) < 1e-6) {
+        if (!bestAtCurrent || cand.count > bestAtCurrent.count) {
+          bestAtCurrent = cand;
+        }
+      }
+    }
+  }
+  return { bestEver, bestAtCurrent };
+}
+
+function fmtCount(count, kind) {
+  if (count == null) return "-";
+  switch (kind) {
+    case "secs": return count + "s";
+    case "steps": return count + " steps";
+    case "m": return count + "m";
+    default: return count;
+  }
+}
+function fmtWeight(w, unit) {
+  if (w == null || w === 0) return "BW";
+  return w + " " + unit;
+}
+
+function repCandidates(prev, kind) {
+  // Returns 6 candidate values centered around prev (last-2 .. last+3).
+  let step = 1;
+  if (kind === "secs") step = 5;
+  if (kind === "m") step = 5;
+  if (kind === "steps") step = 2;
+  const base = prev != null ? prev : (kind === "secs" ? 30 : kind === "m" ? 20 : kind === "steps" ? 12 : 8);
+  const offsets = [-2, -1, 0, 1, 2, 3];
+  return offsets.map(o => Math.max(0, base + o * step));
+}
+
+// ============================================================
+// Session lifecycle
+// ============================================================
+function startSession(day) {
+  if (state.currentSession && state.currentSession.day === day) return;
+  if (state.currentSession) {
+    const anyLogged = state.currentSession.exercises.some(e => e.sets.some(s => s != null));
+    if (anyLogged && !confirm("You have an in-progress " + DAY_LABEL[state.currentSession.day] + " session. Discard it and switch?")) return;
+  }
+  const exercises = (state.plan[day] || []).map(p => ({
+    id: p.id,
+    weight: p.weight,
+    sets: Array(p.sets).fill(null),
+  }));
+  state.currentSession = {
+    day,
+    started: Date.now(),
+    exercises,
+  };
+  saveState();
+  render();
+}
+
+function finishSession() {
+  if (!state.currentSession) { toast("No session active"); return; }
+  const sess = state.currentSession;
+  const anyLogged = sess.exercises.some(e => e.sets.some(s => s != null));
+  if (!anyLogged) { toast("Nothing logged yet"); return; }
+  const planForDay = state.plan[sess.day];
+  const entry = {
+    day: sess.day,
+    date: new Date().toISOString(),
+    exercises: sess.exercises.map(e => {
+      const p = planForDay.find(pp => pp.id === e.id);
+      return {
+        id: e.id,
+        name: p ? p.name : "?",
+        weight: e.weight,
+        unit: p ? p.unit : "",
+        countKind: p ? p.count : "reps",
+        sets: e.sets.map(s => s == null ? null : { count: s.count }),
+      };
+    }),
+  };
+  state.history.push(entry);
+  state.currentSession = null;
+  saveState();
+  toast("Session saved");
+  render();
+}
+
+function resetSession() {
+  state.currentSession = null;
+  saveState();
+  render();
+}
+
+// ============================================================
+// Rendering
+// ============================================================
+function render() {
+  renderDayBar();
+  renderSessionMeta();
+  renderExercises();
+}
+
+function renderDayBar() {
+  const suggested = suggestNextDay();
+  const active = state.currentSession ? state.currentSession.day : suggested;
+  $$(".day-chip").forEach(btn => {
+    const d = btn.dataset.day;
+    btn.classList.toggle("active", d === active);
+    btn.classList.toggle("suggested", d === suggested && d !== active);
+  });
+}
+
+function renderSessionMeta() {
+  const meta = $("#sessionMeta");
+  if (!state.currentSession) {
+    const suggested = suggestNextDay();
+    meta.innerHTML = `<span>Suggested next:</span> <span class="now">${DAY_LABEL[suggested]}</span> <span>- tap to start</span>`;
+    return;
+  }
+  const d = new Date(state.currentSession.started);
+  const time = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  meta.innerHTML = `<span>Today:</span> <span class="now">${DAY_LABEL[state.currentSession.day]}</span> <span>- started ${time}</span>`;
+}
+
+function renderExercises() {
+  const list = $("#exerciseList");
+  const banner = $("#completeBanner");
+  banner.innerHTML = "";
+
+  if (!state.currentSession) {
+    list.innerHTML = `<div class="empty">Pick a day above to begin.<br/>Your last completed: ${state.history.length ? DAY_LABEL[state.history[state.history.length-1].day] + " on " + new Date(state.history[state.history.length-1].date).toLocaleDateString() : "none yet"}</div>`;
+    return;
+  }
+
+  const sess = state.currentSession;
+  const plan = state.plan[sess.day] || [];
+  list.innerHTML = "";
+
+  let totalSets = 0, doneSets = 0;
+  plan.forEach((p, idx) => {
+    const sx = sess.exercises.find(e => e.id === p.id);
+    if (!sx) return;
+    totalSets += p.sets;
+    doneSets += sx.sets.filter(s => s != null).length;
+    list.appendChild(renderExerciseCard(p, sx, idx));
+  });
+
+  if (doneSets === totalSets && totalSets > 0) {
+    banner.innerHTML = `<div class="complete-banner">All sets logged. Tap "Finish workout" to save.</div>`;
+  }
+}
+
+function renderExerciseCard(p, sx, idx) {
+  const last = findLastSession(state.currentSession.day, p.id);
+  const lastSets = last ? (last.exercise.sets || []) : [];
+  const lastWeight = last ? last.exercise.weight : null;
+  const { bestEver, bestAtCurrent } = findPR(state.currentSession.day, p.id, sx.weight);
+  const kind = p.count;
+  const allDone = sx.sets.every(s => s != null);
+
+  const card = document.createElement("div");
+  card.className = "exercise" + (allDone ? " done" : "");
+
+  const subBits = [];
+  if (last) {
+    const lastStr = lastSets.map(s => s == null ? "-" : fmtCount(s.count, kind)).join(" / ");
+    const dateStr = new Date(last.entry.date).toLocaleDateString();
+    subBits.push(`<span class="last">Last (${dateStr}): ${fmtWeight(lastWeight, p.unit)} - ${lastStr}</span>`);
+  } else {
+    subBits.push(`<span class="last">No prior data</span>`);
+  }
+  if (bestEver) {
+    subBits.push(`<span class="pr">PR: ${fmtWeight(bestEver.weight, p.unit)} x ${fmtCount(bestEver.count, kind)}</span>`);
+  }
+  if (bestAtCurrent && (!bestEver || bestEver.weight !== bestAtCurrent.weight)) {
+    subBits.push(`<span class="pr">Best at ${fmtWeight(sx.weight, p.unit)}: ${fmtCount(bestAtCurrent.count, kind)}</span>`);
+  }
+
+  card.innerHTML = `
+    <div class="ex-head">
+      <div class="ex-name">${escapeHtml(p.name)}</div>
+      <div class="ex-num">${idx + 1}/${state.plan[state.currentSession.day].length}</div>
+    </div>
+    <div class="ex-sub">${subBits.join(" &middot; ")}</div>
+    <div class="weight-row">
+      <button class="step" data-w-step="-1" data-ex="${p.id}">-</button>
+      <input class="w-in" type="number" inputmode="decimal" step="0.5" value="${sx.weight}" data-w-input data-ex="${p.id}" />
+      <button class="step" data-w-step="1" data-ex="${p.id}">+</button>
+      <span class="unit">${p.unit}</span>
+    </div>
+    <div class="sets" data-sets="${p.id}"></div>
+  `;
+
+  const setsEl = card.querySelector('[data-sets]');
+  for (let i = 0; i < p.sets; i++) {
+    const setVal = sx.sets[i];
+    const prevVal = (lastSets[i] && lastSets[i].count != null) ? lastSets[i].count : null;
+    const candidates = repCandidates(prevVal, kind);
+    const row = document.createElement("div");
+    row.className = "set-row" + (setVal != null ? " logged" : "");
+    const prevTxt = prevVal != null
+      ? `Last: <b>${fmtCount(prevVal, kind)}</b>${lastWeight!=null ? " @ " + fmtWeight(lastWeight, p.unit) : ""}`
+      : `No prior set`;
+    row.innerHTML = `
+      <div class="set-line">
+        <span class="set-tag">SET ${i+1}</span>
+        <span class="set-prev">${prevTxt}</span>
+      </div>
+      <div class="rep-grid">
+        ${candidates.map((c, ci) => `
+          <button class="rep-btn ${ci === 2 ? "center" : ""} ${setVal != null && setVal.count === c ? "selected" : ""}"
+                  data-log data-ex="${p.id}" data-set="${i}" data-val="${c}">
+            ${fmtCount(c, kind)}
+          </button>
+        `).join("")}
+        <button class="rep-btn custom" data-custom data-ex="${p.id}" data-set="${i}">${setVal != null && !candidates.includes(setVal.count) ? fmtCount(setVal.count, kind) : "+/-"}</button>
+      </div>
+      ${setVal != null ? `<div class="row-actions"><button class="undo" data-undo data-ex="${p.id}" data-set="${i}">Undo set ${i+1}</button></div>` : ""}
+    `;
+    setsEl.appendChild(row);
+  }
+
+  return card;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+// ============================================================
+// Event handling
+// ============================================================
+document.addEventListener("click", (e) => {
+  const dayChip = e.target.closest(".day-chip");
+  if (dayChip) {
+    startSession(dayChip.dataset.day);
+    return;
+  }
+
+  const log = e.target.closest("[data-log]");
+  if (log) {
+    const exId = log.dataset.ex;
+    const setIdx = parseInt(log.dataset.set, 10);
+    const val = parseFloat(log.dataset.val);
+    logSet(exId, setIdx, val);
+    return;
+  }
+
+  const customBtn = e.target.closest("[data-custom]");
+  if (customBtn) {
+    const exId = customBtn.dataset.ex;
+    const setIdx = parseInt(customBtn.dataset.set, 10);
+    const v = prompt("Enter custom value:");
+    if (v != null && v !== "") {
+      const n = parseFloat(v);
+      if (!isNaN(n) && n >= 0) logSet(exId, setIdx, n);
+    }
+    return;
+  }
+
+  const undo = e.target.closest("[data-undo]");
+  if (undo) {
+    const exId = undo.dataset.ex;
+    const setIdx = parseInt(undo.dataset.set, 10);
+    unlogSet(exId, setIdx);
+    return;
+  }
+
+  const wStep = e.target.closest("[data-w-step]");
+  if (wStep) {
+    const exId = wStep.dataset.ex;
+    const dir = parseInt(wStep.dataset.wStep, 10);
+    bumpWeight(exId, dir);
+    return;
+  }
+
+  const timerChip = e.target.closest(".timer-chip");
+  if (timerChip) {
+    const secs = parseInt(timerChip.dataset.secs, 10);
+    setDefaultTimer(secs);
+    return;
+  }
+
+  if (e.target.closest("#timerStop")) { stopTimer(); return; }
+  if (e.target.closest("#timerDisplay")) { startTimer(defaultRest); return; }
+
+  if (e.target.closest("#settingsBtn")) { openSheet("settingsSheet"); renderEditor(); return; }
+  if (e.target.closest("#historyBtn")) { openSheet("historySheet"); renderHistory(); return; }
+  if (e.target.closest("[data-close]")) { closeSheets(); return; }
+
+  if (e.target.closest("#finishBtn")) { finishSession(); return; }
+  if (e.target.closest("#resetSessionBtn")) {
+    if (state.currentSession && confirm("Discard current session?")) resetSession();
+    return;
+  }
+
+  if (e.target.closest("#exportBtn")) { exportData(); return; }
+  if (e.target.closest("#importBtn")) { $("#importFile").click(); return; }
+  if (e.target.closest("#wipeBtn")) {
+    if (confirm("Wipe all data permanently?")) { state = defaultState(); saveState(); render(); closeSheets(); }
+    return;
+  }
+  if (e.target.closest("#addExerciseBtn")) {
+    const day = $("#editDaySel").value;
+    state.plan[day].push({ id: uid(), name: "New exercise", weight: 0, unit: "lb", sets: 3, count: "reps" });
+    saveState(); renderEditor();
+    return;
+  }
+});
+
+document.addEventListener("input", (e) => {
+  const wIn = e.target.closest("[data-w-input]");
+  if (wIn) {
+    const exId = wIn.dataset.ex;
+    const v = parseFloat(wIn.value);
+    if (!isNaN(v)) setWeight(exId, v);
+  }
+});
+
+document.addEventListener("change", (e) => {
+  if (e.target.id === "editDaySel") renderEditor();
+  if (e.target.id === "historyDaySel") renderHistory();
+  if (e.target.id === "importFile") {
+    const f = e.target.files[0];
+    if (!f) return;
+    const r = new FileReader();
+    r.onload = () => {
+      try {
+        const data = JSON.parse(r.result);
+        if (data.plan && data.history) {
+          state = data;
+          saveState();
+          toast("Imported");
+          render();
+          closeSheets();
+        } else { toast("Invalid file"); }
+      } catch (err) { toast("Parse error"); }
+    };
+    r.readAsText(f);
+  }
+});
+
+function logSet(exId, setIdx, value) {
+  if (!state.currentSession) return;
+  const ex = state.currentSession.exercises.find(e => e.id === exId);
+  if (!ex) return;
+  ex.sets[setIdx] = { count: value };
+  saveState();
+  renderExercises();
+  startTimer(defaultRest);
+}
+function unlogSet(exId, setIdx) {
+  if (!state.currentSession) return;
+  const ex = state.currentSession.exercises.find(e => e.id === exId);
+  if (!ex) return;
+  ex.sets[setIdx] = null;
+  saveState();
+  renderExercises();
+}
+function setWeight(exId, w) {
+  if (!state.currentSession) return;
+  const ex = state.currentSession.exercises.find(e => e.id === exId);
+  if (!ex) return;
+  ex.weight = w;
+  // Also persist as new "current" weight for the plan, so next session pre-fills with this.
+  const planEx = state.plan[state.currentSession.day].find(p => p.id === exId);
+  if (planEx) planEx.weight = w;
+  saveState();
+  // Don't re-render the whole list (would steal focus from input). Update only the previous-set lines.
+}
+function bumpWeight(exId, dir) {
+  if (!state.currentSession) return;
+  const ex = state.currentSession.exercises.find(e => e.id === exId);
+  if (!ex) return;
+  const planEx = state.plan[state.currentSession.day].find(p => p.id === exId);
+  const step = (planEx && planEx.unit === "kg") ? 1.25 : 2.5;
+  ex.weight = Math.max(0, +(ex.weight + dir * step).toFixed(2));
+  if (planEx) planEx.weight = ex.weight;
+  saveState();
+  renderExercises();
+}
+
+// ============================================================
+// Timer (silent, visual only)
+// ============================================================
+let defaultRest = 90;
+let timerEnd = 0;
+let timerInterval = null;
+
+function setDefaultTimer(secs) {
+  defaultRest = secs;
+  $$(".timer-chip").forEach(c => c.classList.toggle("active", parseInt(c.dataset.secs,10) === secs));
+}
+function startTimer(secs) {
+  stopTimer();
+  timerEnd = Date.now() + secs * 1000;
+  $("#timerLabel").textContent = "REST";
+  tickTimer();
+  timerInterval = setInterval(tickTimer, 200);
+}
+function stopTimer() {
+  clearInterval(timerInterval);
+  timerInterval = null;
+  $("#timerBig").textContent = "--:--";
+  $("#timerDisplay").classList.remove("warn", "low");
+}
+function tickTimer() {
+  const left = Math.max(0, timerEnd - Date.now());
+  const s = Math.ceil(left / 1000);
+  const mm = Math.floor(s / 60);
+  const ss = s % 60;
+  $("#timerBig").textContent = `${mm}:${String(ss).padStart(2, "0")}`;
+  const disp = $("#timerDisplay");
+  disp.classList.toggle("warn", s <= 15 && s > 5);
+  disp.classList.toggle("low", s <= 5 && s > 0);
+  if (left <= 0) {
+    stopTimer();
+    $("#timerBig").textContent = "GO";
+    $("#timerLabel").textContent = "READY";
+  }
+}
+
+// ============================================================
+// Sheets, editor, history
+// ============================================================
+function openSheet(id) { $("#"+id).classList.add("open"); }
+function closeSheets() { $$(".sheet").forEach(s => s.classList.remove("open")); }
+
+function renderEditor() {
+  const day = $("#editDaySel").value;
+  const list = $("#editList");
+  const items = state.plan[day] || [];
+  list.innerHTML = items.map(p => `
+    <div class="ex-edit" data-edit="${p.id}">
+      <div class="row">
+        <input data-f="name" type="text" value="${escapeHtml(p.name)}" placeholder="Name" />
+        <input data-f="weight" type="number" step="0.5" value="${p.weight}" placeholder="Weight" />
+        <select data-f="unit">
+          <option value="lb" ${p.unit==="lb"?"selected":""}>lb</option>
+          <option value="kg" ${p.unit==="kg"?"selected":""}>kg</option>
+        </select>
+        <input data-f="sets" type="number" min="1" max="10" value="${p.sets}" />
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <select data-f="count" style="grid-column: span 2;">
+          <option value="reps" ${p.count==="reps"?"selected":""}>reps</option>
+          <option value="secs" ${p.count==="secs"?"selected":""}>seconds</option>
+          <option value="steps" ${p.count==="steps"?"selected":""}>steps</option>
+          <option value="m" ${p.count==="m"?"selected":""}>meters</option>
+        </select>
+      </div>
+      <div class="actions">
+        <button data-mv="-1">Up</button>
+        <button data-mv="1">Down</button>
+        <button class="del" data-del>Delete</button>
+      </div>
+    </div>
+  `).join("");
+
+  list.querySelectorAll(".ex-edit").forEach(card => {
+    const id = card.dataset.edit;
+    card.querySelectorAll("input,select").forEach(el => {
+      el.addEventListener("change", () => {
+        const p = state.plan[day].find(x => x.id === id);
+        if (!p) return;
+        const f = el.dataset.f;
+        if (f === "weight") p.weight = parseFloat(el.value) || 0;
+        else if (f === "sets") p.sets = Math.max(1, parseInt(el.value, 10) || 1);
+        else p[f] = el.value;
+        saveState();
+      });
+    });
+    card.querySelector("[data-del]").addEventListener("click", () => {
+      if (!confirm("Delete this exercise from the plan?")) return;
+      state.plan[day] = state.plan[day].filter(x => x.id !== id);
+      saveState(); renderEditor();
+    });
+    card.querySelectorAll("[data-mv]").forEach(b => {
+      b.addEventListener("click", () => {
+        const dir = parseInt(b.dataset.mv, 10);
+        const arr = state.plan[day];
+        const i = arr.findIndex(x => x.id === id);
+        const j = i + dir;
+        if (j < 0 || j >= arr.length) return;
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+        saveState(); renderEditor();
+      });
+    });
+  });
+}
+
+function renderHistory() {
+  const day = $("#historyDaySel").value;
+  const list = $("#historyList");
+  const entries = state.history.filter(h => h.day === day).slice().reverse();
+  if (!entries.length) { list.innerHTML = `<div class="empty">No history for ${DAY_LABEL[day]}</div>`; return; }
+  list.innerHTML = entries.map(h => {
+    const date = new Date(h.date).toLocaleString();
+    const lines = h.exercises.map(ex => {
+      const sets = (ex.sets || []).map(s => s == null ? "-" : fmtCount(s.count, ex.countKind)).join(" / ");
+      return `<div class="history-row"><span>${escapeHtml(ex.name)}</span><span>${fmtWeight(ex.weight, ex.unit)} - ${sets}</span></div>`;
+    }).join("");
+    return `<div class="ex-edit"><div style="font-weight:700; margin-bottom:6px;">${date}</div>${lines}</div>`;
+  }).join("");
+}
+
+function exportData() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `lift-backup-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+let toastT;
+function toast(msg) {
+  const t = $("#toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toastT);
+  toastT = setTimeout(() => t.classList.remove("show"), 1800);
+}
+
+// ============================================================
+// Boot
+// ============================================================
+render();
+// Pre-suggest the next day visually but don't auto-start; user taps to begin.
+</script>
+</body>
+</html>
