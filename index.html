@@ -26,18 +26,81 @@
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+/* Top safe-area padding lives on the sticky header instead of the body, so the header can pin under the status bar. */
+body { padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
 button, input, select { font: inherit; color: inherit; }
 button { cursor: pointer; }
 input, select { background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; color: var(--text); }
 input:focus, select:focus { outline: 2px solid var(--accent-2); outline-offset: 1px; }
 
-.app { max-width: 720px; margin: 0 auto; padding: 14px 14px 170px; }
+.app { max-width: 720px; margin: 0 auto; padding: 0 14px 170px; }
 
+/* Sticky header: top bar + (in a workout) the exercise strip. */
+.sticky {
+  position: sticky; top: 0; z-index: 4;
+  background: var(--bg);
+  margin: 0 -14px; padding: calc(env(safe-area-inset-top) + 14px) 14px 10px;
+}
 header.top {
   display: flex; align-items: center; gap: 10px;
-  padding: 8px 4px 14px;
+  padding: 0 4px;
+  min-height: 44px;
 }
+.back-btn {
+  background: var(--surface); border: 1px solid var(--border); color: var(--text);
+  width: 40px; height: 44px; border-radius: 12px; flex: none;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.back-btn svg { width: 22px; height: 22px; }
+.day-pill {
+  background: var(--accent); color: #000; border: none;
+  border-radius: 999px; padding: 6px 12px;
+  font-weight: 800; font-size: 14px; white-space: nowrap;
+}
+[hidden] { display: none !important; }
+
+/* Exercise strip: one numbered button per exercise, showing status. */
+.ex-strip {
+  display: grid; gap: 5px; margin-top: 12px;
+  grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr);
+}
+.ex-dot {
+  min-width: 0; height: 40px; border-radius: 10px;
+  background: var(--surface); border: 1.5px solid var(--border); color: var(--muted);
+  font-weight: 800; font-size: 15px; font-variant-numeric: tabular-nums;
+  display: inline-flex; align-items: center; justify-content: center; gap: 1px;
+  transition: background 150ms, border-color 150ms;
+}
+.ex-dot.partial { border-color: var(--good); color: var(--text); }
+.ex-dot.done { background: var(--good); border-color: var(--good); color: #000; }
+.ex-dot.current { border-color: var(--accent); background: var(--accent); color: #000; box-shadow: 0 0 0 2px rgba(232,255,90,0.25); }
+.ex-dot.current.done { background: var(--good); box-shadow: 0 0 0 2px var(--accent); }
+.ex-dot .tick { font-size: 12px; }
+
+/* Menu: resume card */
+.resume-card {
+  display: flex; align-items: center; gap: 12px;
+  background: rgba(232,255,90,0.08); border: 1px solid rgba(232,255,90,0.4);
+  border-radius: 16px; padding: 14px; margin: 4px 0 12px;
+}
+.resume-card .txt { flex: 1; min-width: 0; }
+.resume-card .t1 { font-weight: 800; font-size: 16px; }
+.resume-card .t2 { color: var(--muted); font-size: 13px; margin-top: 2px; }
+.resume-card button {
+  background: var(--accent); color: #000; border: none; border-radius: 12px;
+  padding: 12px 16px; font-weight: 800; font-size: 15px;
+}
+
+.next-btn {
+  width: 100%; margin-top: 12px; padding: 14px; border-radius: 14px;
+  background: var(--surface); border: 1px solid var(--accent-2); color: var(--accent-2);
+  font-weight: 700; font-size: 15px; text-align: center;
+}
+
+@keyframes slideL { from { transform: translateX(28px); opacity: .3; } to { transform: none; opacity: 1; } }
+@keyframes slideR { from { transform: translateX(-28px); opacity: .3; } to { transform: none; opacity: 1; } }
+.exercise.anim-l { animation: slideL 160ms ease-out; }
+.exercise.anim-r { animation: slideR 160ms ease-out; }
 .logo { font-weight: 800; font-size: 22px; letter-spacing: 0.5px; }
 .logo .dot { color: var(--accent); }
 .spacer { flex: 1; }
@@ -140,15 +203,7 @@ header.top {
 }
 .custom-row button.cancel { background: var(--surface); color: var(--muted); border: 1px solid var(--border); font-weight: 600; }
 
-/* Completed exercise collapses to a summary; tap to expand. */
-.exercise.collapsed .weight-row,
-.exercise.collapsed .sets { display: none; }
-.exercise.collapsed .ex-sub { display: none; }
-.ex-summary { display: none; margin-top: 6px; font-size: 14px; color: var(--good); font-weight: 600; font-variant-numeric: tabular-nums; }
-.exercise.collapsed .ex-summary { display: block; }
-.exercise.done .ex-head { cursor: pointer; }
 .ex-check { color: var(--good); font-weight: 800; }
-.ex-toggle { color: var(--muted); font-size: 12px; }
 
 .row-actions { display: flex; gap: 8px; margin-top: 8px; }
 .row-actions .undo {
@@ -248,6 +303,7 @@ body.sheet-open { overflow: hidden; }
   display: grid; gap: 8px; margin-top: 8px;
   grid-template-columns: minmax(0,1.1fr) minmax(0,0.9fr) minmax(0,0.8fr) minmax(0,1.2fr);
 }
+.ex-edit .ed-grid-2 { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); }
 .fld { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .fld span { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; padding-left: 2px; }
 .fld input, .fld select { width: 100%; min-width: 0; padding: 9px 8px; }
@@ -261,7 +317,8 @@ body.sheet-open { overflow: hidden; }
 
 .toast {
   position: fixed; left: 50%; transform: translateX(-50%);
-  top: calc(env(safe-area-inset-top) + 12px);
+  top: calc(env(safe-area-inset-top) + 124px); /* below the header + exercise strip */
+  white-space: nowrap; box-shadow: 0 6px 20px rgba(0,0,0,0.5);
   background: var(--surface); color: var(--text);
   border: 1px solid var(--border); border-radius: 12px;
   padding: 10px 14px; font-size: 13px; z-index: 20;
@@ -272,10 +329,16 @@ body.sheet-open { overflow: hidden; }
 
 .progress-hint {
   margin-top: 10px;
-  background: rgba(232,255,90,0.08); border: 1px solid rgba(232,255,90,0.35);
-  color: var(--accent); border-radius: 12px; padding: 10px 12px;
-  font-size: 13px; font-weight: 600;
+  background: var(--surface-2); border: 1px solid var(--border);
+  color: var(--text); border-radius: 12px; padding: 10px 12px;
+  font-size: 13px; font-weight: 600; line-height: 1.4;
 }
+.progress-hint.good { background: rgba(232,255,90,0.08); border-color: rgba(232,255,90,0.35); color: var(--accent); }
+.progress-hint.dim { color: var(--muted); }
+.ex-target { margin-top: 6px; font-size: 14px; color: var(--muted); }
+.ex-target b { color: var(--accent); font-weight: 700; }
+.ex-note { font-size: 13px; font-weight: 600; color: var(--muted); }
+.set-prev b.tgt { color: var(--accent); }
 
 .complete-banner {
   background: rgba(102,224,122,0.1); border: 1px solid rgba(102,224,122,0.4);
@@ -296,8 +359,13 @@ body.sheet-open { overflow: hidden; }
 </head>
 <body>
 <div class="app">
+  <div class="sticky">
   <header class="top">
+    <button class="back-btn" id="backBtn" aria-label="Back to workouts" hidden>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 5 8 12 15 19"/></svg>
+    </button>
     <div class="logo">Lift<span class="dot">.</span></div>
+    <button class="day-pill" id="dayPill" hidden></button>
     <div class="spacer"></div>
     <button class="icon-btn" id="historyBtn" title="History" aria-label="History">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -311,23 +379,33 @@ body.sheet-open { overflow: hidden; }
       </svg>
     </button>
   </header>
-
-  <div class="day-bar">
-    <div class="label">Today</div>
-    <button class="day-chip" data-day="UA">Upper A</button>
-    <button class="day-chip" data-day="LA">Lower A</button>
-    <button class="day-chip" data-day="UB">Upper B</button>
-    <button class="day-chip" data-day="LB">Lower B</button>
+  <nav class="ex-strip" id="exStrip" hidden></nav>
   </div>
 
-  <div class="session-meta" id="sessionMeta"></div>
-  <div id="completeBanner"></div>
-  <div id="exerciseList"></div>
+  <!-- Menu view: pick a workout day -->
+  <section id="menuView">
+    <div id="resumeSlot"></div>
+    <div class="day-bar">
+      <div class="label">Choose workout</div>
+      <button class="day-chip" data-day="UA">Upper A</button>
+      <button class="day-chip" data-day="LA">Lower A</button>
+      <button class="day-chip" data-day="UB">Upper B</button>
+      <button class="day-chip" data-day="LB">Lower B</button>
+    </div>
+    <div class="session-meta" id="sessionMeta"></div>
+    <div class="empty" id="menuEmpty"></div>
+  </section>
 
-  <div class="fab-row" id="fabRow" hidden>
-    <button class="btn primary" id="finishBtn">Finish workout</button>
-    <button class="link-btn" id="resetSessionBtn">Discard workout</button>
-  </div>
+  <!-- Workout view: one exercise at a time -->
+  <section id="workoutView" hidden>
+    <div id="completeBanner"></div>
+    <div id="exerciseList"></div>
+    <div id="nextSlot"></div>
+    <div class="fab-row" id="fabRow">
+      <button class="btn" id="finishBtn">Finish workout</button>
+      <button class="link-btn" id="resetSessionBtn">Discard workout</button>
+    </div>
+  </section>
 </div>
 
 <div class="timer-bar" id="timerBar">
@@ -418,119 +496,110 @@ function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
+// Bump PLAN_VERSION whenever DEFAULT_PLAN changes: the new defaults are then applied
+// once to the plan already saved on the phone (history is never touched).
+const PLAN_VERSION = 2;
+
+// Your defaults. benchmark = target per set at that weight; its length is the set count.
+// aka = old names on the phone, so renamed exercises keep their history.
+const DEFAULT_PLAN = {
+  UA: [
+    { name: "Incline DB Press",     weight: 75,   unit: "lb", benchmark: [11, 9, 9],          aka: ["Incline DB Bench"] },
+    { name: "Incline Cable Fly",    weight: 13.5, unit: "kg", benchmark: [13, 12, 10, 10],    note: "per side", aka: ["Cable Fly"] },
+    { name: "Lat Pulldown",         weight: 70,   unit: "kg", benchmark: [12, 11, 9, 9] },
+    { name: "Cable Lateral Raise",  weight: 7.5,  unit: "kg", benchmark: [12, 11, 11],        aka: ["Lateral Raise"] },
+    { name: "Face Pull",            weight: 30,   unit: "kg", benchmark: [15, 12, 11, 11] },
+    { name: "Tricep Pushdown",      weight: 20,   unit: "kg", benchmark: [14, 13, 11] },
+  ],
+  UB: [
+    { name: "Flat DB Bench",        weight: 80,   unit: "lb", benchmark: [11, 9, 9] },
+    { name: "Smith Incline Press",  weight: 90,   unit: "lb", benchmark: [11, 10, 10] },
+    { name: "T-Bar Row",            weight: 100,  unit: "lb", benchmark: [12, 9, 8] },
+    { name: "Shoulder Press",       weight: 55,   unit: "kg", benchmark: [12, 11, 10],        aka: ["Seated DB Shoulder Press"] },
+    { name: "OH Tricep Extension",  weight: 75,   unit: "kg", benchmark: [11, 11, 11] },
+    { name: "EZ Bar Curl",          weight: 30,   unit: "lb", benchmark: [12, 11, 9] },
+  ],
+  LA: [
+    { name: "Hack Squat",                  weight: 250, unit: "lb", benchmark: [15, 13, 13] },
+    { name: "Smith Bulgarian Split Squat", weight: 20,  unit: "lb", benchmark: [12, 10, 10], note: "plus bar", aka: ["Bulgarian Split Squat"] },
+    { name: "Seated Leg Curl",             weight: 65,  unit: "kg", benchmark: [12, 12, 11] },
+    { name: "Leg Extension",               weight: 65,  unit: "kg", benchmark: [12, 12, 12] },
+    { name: "Leg Press",                   weight: 70,  unit: "kg", benchmark: [12, 12, 12] },
+    { name: "Standing Calf Raise",         weight: 180, unit: "lb", benchmark: [14, 14, 14] },
+  ],
+  LB: [
+    { name: "Romanian Deadlift",  weight: 140, unit: "lb", benchmark: [10, 9, 9],          aka: ["RDL"] },
+    { name: "Walking Lunges",     weight: 30,  unit: "lb", benchmark: [24, 24, 24],        note: "DBs", count: "steps", aka: ["DB Hold Lunges"] },
+    { name: "Lying Leg Curl",     weight: 40,  unit: "kg", benchmark: [12, 10, 10],        aka: ["Lying Hamstring Curl"] },
+    { name: "Hip Thrust",         weight: 180, unit: "lb", benchmark: [12, 12, 12] },
+    { name: "Seated Calf Raise",  weight: 115, unit: "lb", benchmark: [14, 12, 12, 12] },
+    { name: "Leg Press",          weight: 60,  unit: "kg", benchmark: [20, 20, 20] },
+  ],
+};
+
+// Build a plan from DEFAULT_PLAN. If an existing plan is passed, exercises with the
+// same (or an old "aka") name on the same day reuse their id so history stays linked.
+function buildPlan(existing) {
+  const plan = {};
+  for (const day of ROTATION) {
+    const old = (existing && existing[day]) || [];
+    const used = new Set();
+    plan[day] = DEFAULT_PLAN[day].map(d => {
+      const names = [d.name, ...(d.aka || [])].map(n => n.toLowerCase());
+      const match = old.find(o => !used.has(o.id) && names.includes(String(o.name).toLowerCase()));
+      if (match) used.add(match.id);
+      return {
+        id: match ? match.id : uid(),
+        name: d.name,
+        note: d.note || "",
+        weight: d.weight,
+        unit: d.unit,
+        count: d.count || "reps",
+        sets: d.benchmark.length,
+        benchmark: d.benchmark.slice(),
+      };
+    });
+  }
+  return plan;
+}
+
 function defaultState() {
-  const plan = defaultPlan();
   return {
-    plan,
-    history: seedHistory(plan),
+    plan: buildPlan(null),
+    planVersion: PLAN_VERSION,
+    history: [],
     currentSession: null,
     settings: { vibrate: false },
   };
 }
 
-// Seeds your last completed UA / LA / UB / LB sessions using the "TO NOW" numbers
-// you provided, so day-one rep buttons calibrate correctly and PRs surface.
-function seedHistory(plan) {
-  const today = new Date();
-  const daysAgo = (n) => new Date(today.getTime() - n * 86400000).toISOString();
-  // Order matters: oldest first. Last completed = LB so next suggested = UA.
-  const seed = (day, daysBack, byName) => {
-    const planForDay = plan[day];
-    const exercises = [];
-    for (const ex of planForDay) {
-      const sets = byName[ex.name];
-      if (!sets) continue; // skip exercises with no seed data (placeholders)
-      exercises.push({
-        id: ex.id,
-        name: ex.name,
-        weight: ex.weight,
-        unit: ex.unit,
-        countKind: ex.count,
-        sets: sets.map(c => ({ count: c })),
-      });
-    }
-    return { day, date: daysAgo(daysBack), exercises };
-  };
-  return [
-    seed("UA", 8, {
-      "Incline DB Bench":   [11, 8, 8, 8],
-      "Cable Fly":          [12, 10, 10],
-      "T-Bar Row":          [12, 9, 9],
-      "Lateral Raise":      [12, 11, 10],
-      "Face Pull":          [14, 12, 11, 11],
-      "Tricep Pushdown":    [14, 13, 11],
-      "Heavy DB Holds":     [60, 30, 20],
-    }),
-    seed("LA", 6, {
-      "Hack Squat":              [12, 12, 11],
-      "Leg Press":               [14, 14, 15],
-      "Bulgarian Split Squat":   [12, 10, 12],
-      "Leg Extension":           [12, 12, 11, 10],
-      "Seated Leg Curl":         [13, 11, 11],
-      "Standing Calf Raise":     [12, 12, 12, 12],
-    }),
-    seed("UB", 4, {
-      "Smith Incline Press":         [12, 10, 9, 10],
-      "Flat DB Bench":               [9, 8, 8, 8],
-      "Neutral-Grip Pulldown":       [13, 11, 9, 9],
-      "Seated DB Shoulder Press":    [10, 10, 10],
-      "OH Tricep Extension":         [11, 10, 10],
-    }),
-    seed("LB", 2, {
-      "RDL":                  [9, 8, 9],
-      "Hip Thrust":           [12, 12, 12],
-      "Lying Hamstring Curl": [10, 9, 9],
-      "DB Hold Lunges":       [24, 24, 24],
-      "Seated Calf Raise":    [12, 12, 12, 12],
-      "Farmers Carries":      [40, 40, 40],
-    }),
-  ];
-}
-
-function defaultPlan() {
-  return {
-    UA: [
-      { id: uid(), name: "Incline DB Bench",     weight: 70,    unit: "lb", sets: 4, count: "reps" },
-      { id: uid(), name: "Cable Fly",            weight: 12,    unit: "kg", sets: 3, count: "reps" },
-      { id: uid(), name: "T-Bar Row",            weight: 100,   unit: "lb", sets: 3, count: "reps" },
-      { id: uid(), name: "Lateral Raise",        weight: 6,     unit: "kg", sets: 3, count: "reps" },
-      { id: uid(), name: "Face Pull",            weight: 27.5,  unit: "kg", sets: 4, count: "reps" },
-      { id: uid(), name: "Tricep Pushdown",      weight: 17.5,  unit: "kg", sets: 3, count: "reps" },
-      { id: uid(), name: "Heavy DB Holds",       weight: 75,    unit: "lb", sets: 3, count: "secs" },
-    ],
-    LA: [
-      { id: uid(), name: "Hack Squat",           weight: 125,   unit: "lb", sets: 3, count: "reps" },
-      { id: uid(), name: "Leg Press",            weight: 60,    unit: "kg", sets: 3, count: "reps" },
-      { id: uid(), name: "Bulgarian Split Squat",weight: 35,    unit: "lb", sets: 3, count: "reps" },
-      { id: uid(), name: "Leg Extension",        weight: 65,    unit: "kg", sets: 4, count: "reps" },
-      { id: uid(), name: "Seated Leg Curl",      weight: 60,    unit: "kg", sets: 3, count: "reps" },
-      { id: uid(), name: "Standing Calf Raise",  weight: 180,   unit: "lb", sets: 4, count: "reps" },
-    ],
-    UB: [
-      { id: uid(), name: "Smith Incline Press",  weight: 90,    unit: "lb", sets: 4, count: "reps" },
-      { id: uid(), name: "Flat DB Bench",        weight: 70,    unit: "lb", sets: 4, count: "reps" },
-      { id: uid(), name: "Neutral-Grip Pulldown",weight: 65,    unit: "kg", sets: 4, count: "reps" },
-      { id: uid(), name: "Seated DB Shoulder Press", weight: 45, unit: "kg", sets: 3, count: "reps" },
-      { id: uid(), name: "OH Tricep Extension",  weight: 30,    unit: "kg", sets: 3, count: "reps" },
-      { id: uid(), name: "Bicep Finishers",      weight: 0,     unit: "kg", sets: 3, count: "reps" },
-      { id: uid(), name: "Wrist + Reverse Curls",weight: 0,     unit: "kg", sets: 3, count: "reps" },
-    ],
-    LB: [
-      { id: uid(), name: "RDL",                  weight: 140,   unit: "lb", sets: 3, count: "reps" },
-      { id: uid(), name: "Hip Thrust",           weight: 180,   unit: "lb", sets: 3, count: "reps" },
-      { id: uid(), name: "Lying Hamstring Curl", weight: 40,    unit: "kg", sets: 3, count: "reps" },
-      { id: uid(), name: "DB Hold Lunges",       weight: 20,    unit: "lb", sets: 3, count: "steps" },
-      { id: uid(), name: "Seated Calf Raise",    weight: 100,   unit: "lb", sets: 4, count: "reps" },
-      { id: uid(), name: "Farmers Carries",      weight: 60,    unit: "lb", sets: 3, count: "m" },
-    ],
-  };
-}
-
 function uid() { return Math.random().toString(36).slice(2, 10); }
 
-let state = loadState();
-// Migration: older saves have no settings object.
-if (!state.settings) state.settings = { vibrate: false };
+// Bring any saved state up to date.
+function migrate(s) {
+  if (!s.settings) s.settings = { vibrate: false };
+  if (!s.history) s.history = [];
+  if ((s.planVersion || 0) < PLAN_VERSION) {
+    s.plan = buildPlan(s.plan);
+    s.planVersion = PLAN_VERSION;
+    // An in-progress workout keeps only exercises that still exist in its day.
+    if (s.currentSession) {
+      const ids = new Set((s.plan[s.currentSession.day] || []).map(p => p.id));
+      s.currentSession.exercises = s.currentSession.exercises.filter(e => ids.has(e.id));
+    }
+  }
+  // Any exercise without a benchmark (e.g. older saves) gets an empty one.
+  for (const day of Object.keys(s.plan)) {
+    for (const p of s.plan[day]) {
+      if (!Array.isArray(p.benchmark)) p.benchmark = [];
+      if (p.note == null) p.note = "";
+    }
+  }
+  return s;
+}
+
+let state = migrate(loadState());
+saveState();
 
 // ============================================================
 // Helpers
@@ -612,27 +681,39 @@ function repCandidates(prev, kind) {
 // ============================================================
 // Session lifecycle
 // ============================================================
+// Which screen is showing. A session can be in progress while you're on the menu.
+let view = "menu"; // "menu" | "workout"
+
+function sessionLoggedCount(sess) {
+  return sess ? sess.exercises.reduce((n, e) => n + e.sets.filter(s => s != null).length, 0) : 0;
+}
+
 function startSession(day) {
-  if (state.currentSession && state.currentSession.day === day) return;
+  // Same day as the one in progress: just resume it.
+  if (state.currentSession && state.currentSession.day === day) { showWorkout(); return; }
   if (state.currentSession) {
-    const anyLogged = state.currentSession.exercises.some(e => e.sets.some(s => s != null));
-    if (anyLogged && !confirm("You have an in-progress " + DAY_LABEL[state.currentSession.day] + " session. Discard it and switch?")) return;
+    const n = sessionLoggedCount(state.currentSession);
+    if (n > 0 && !confirm(`Your ${DAY_LABEL[state.currentSession.day]} workout has ${n} set${n === 1 ? "" : "s"} logged. Discard it and start ${DAY_LABEL[day]}?`)) return;
   }
-  const exercises = (state.plan[day] || []).map(p => ({
+  const plan = state.plan[day] || [];
+  const exercises = plan.map(p => ({
     id: p.id,
     weight: p.weight,
     sets: Array(p.sets).fill(null),
   }));
-  expanded.clear();
   customOpen = null;
   state.currentSession = {
     day,
     started: Date.now(),
     exercises,
+    cur: plan.length ? plan[0].id : null, // exercise currently on screen
   };
   saveState();
-  render();
+  showWorkout();
 }
+
+function showWorkout() { view = "workout"; window.scrollTo(0, 0); render(); }
+function showMenu() { view = "menu"; customOpen = null; window.scrollTo(0, 0); render(); }
 
 function finishSession() {
   if (!state.currentSession) { toast("No session active"); return; }
@@ -643,29 +724,75 @@ function finishSession() {
   const entry = {
     day: sess.day,
     date: new Date().toISOString(),
-    exercises: sess.exercises.map(e => {
-      const p = planForDay.find(pp => pp.id === e.id);
-      return {
-        id: e.id,
-        name: p ? p.name : "?",
-        weight: e.weight,
-        unit: p ? p.unit : "",
-        countKind: p ? p.count : "reps",
-        sets: e.sets.map(s => s == null ? null : { count: s.count }),
-      };
-    }),
+    exercises: sess.exercises
+      .filter(e => planForDay.some(pp => pp.id === e.id))
+      .map(e => {
+        const p = planForDay.find(pp => pp.id === e.id);
+        return {
+          id: e.id,
+          name: p.name,
+          weight: e.weight,
+          unit: p.unit,
+          countKind: p.count,
+          sets: e.sets.map(s => s == null ? null : { count: s.count }),
+        };
+      }),
   };
   state.history.push(entry);
+
+  // Apply the benchmark rules to the plan.
+  const raised = [];
+  for (const p of planForDay) {
+    const sx = sess.exercises.find(e => e.id === p.id);
+    if (!sx) continue;
+    const v = evaluateBenchmark(p, sx);
+    if (v.kind === "weightUp") {
+      p.weight = v.newWeight;
+      p.benchmark = v.newBm;
+      raised.push(p.name);
+    } else if (v.kind === "raised") {
+      p.benchmark = v.newBm;
+      raised.push(p.name);
+    }
+  }
+
   state.currentSession = null;
   saveState();
-  toast("Session saved");
-  render();
+  toast(raised.length
+    ? `Saved. ${raised.length} benchmark${raised.length === 1 ? "" : "s"} raised`
+    : "Workout saved");
+  showMenu();
 }
+
+// Benchmark rules (agreed with Wayne):
+//  - Same weight: raised only if every set >= target and at least one set > target;
+//    the new benchmark is exactly what you did. Falling short never lowers it.
+//  - Heavier weight: it becomes the default and what you hit becomes the benchmark.
+//  - Lighter weight, or any set not logged: nothing changes.
+function evaluateBenchmark(p, sx) {
+  const n = p.sets;
+  const bm = p.benchmark || [];
+  const actual = sx.sets.slice(0, n).map(s => (s == null ? null : s.count));
+  if (actual.length < n || actual.some(v => v == null)) return { kind: "incomplete" };
+  const same = Math.abs(sx.weight - p.weight) < 1e-6;
+  if (!same && sx.weight > p.weight) return { kind: "weightUp", newWeight: sx.weight, newBm: actual };
+  if (!same) return { kind: "lighter" };
+  let allMeet = true, beatAny = false;
+  actual.forEach((v, i) => {
+    const t = bm[i] != null ? bm[i] : 0;
+    if (v < t) allMeet = false;
+    if (v > t) beatAny = true;
+  });
+  if (allMeet && beatAny) return { kind: "raised", newBm: actual };
+  if (allMeet) return { kind: "matched" };
+  return { kind: "short" };
+}
+function fmtBm(arr) { return arr && arr.length ? arr.join(" / ") : "none yet"; }
 
 function resetSession() {
   state.currentSession = null;
   saveState();
-  render();
+  showMenu();
 }
 
 // Keep the active session in sync with plan edits made mid-session:
@@ -696,10 +823,43 @@ function reconcileSession() {
 // Rendering
 // ============================================================
 function render() {
-  renderDayBar();
-  renderSessionMeta();
-  renderExercises();
+  if (view === "workout" && !state.currentSession) view = "menu";
+  const inWorkout = view === "workout";
+  $("#menuView").hidden = inWorkout;
+  $("#workoutView").hidden = !inWorkout;
+  $("#exStrip").hidden = !inWorkout;
+  $("#backBtn").hidden = !inWorkout;
+  $("#dayPill").hidden = !inWorkout;
+  if (inWorkout) {
+    $("#dayPill").textContent = DAY_LABEL[state.currentSession.day];
+    renderExercises();
+  } else {
+    renderDayBar();
+    renderSessionMeta();
+    renderMenu();
+  }
   updateWakeLock();
+}
+
+function renderMenu() {
+  const sess = state.currentSession;
+  const slot = $("#resumeSlot");
+  if (sess) {
+    const total = sess.exercises.reduce((n, e) => n + e.sets.length, 0);
+    const time = new Date(sess.started).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    slot.innerHTML = `
+      <div class="resume-card">
+        <div class="txt">
+          <div class="t1">${DAY_LABEL[sess.day]} in progress</div>
+          <div class="t2">${sessionLoggedCount(sess)}/${total} sets logged &middot; started ${time}</div>
+        </div>
+        <button id="resumeBtn">Resume</button>
+      </div>`;
+  } else {
+    slot.innerHTML = "";
+  }
+  const lastH = state.history[state.history.length - 1];
+  $("#menuEmpty").innerHTML = `Last completed: ${lastH ? DAY_LABEL[lastH.day] + " on " + new Date(lastH.date).toLocaleDateString() : "none yet"}`;
 }
 
 // ============================================================
@@ -735,50 +895,89 @@ function renderDayBar() {
 }
 
 function renderSessionMeta() {
-  const meta = $("#sessionMeta");
-  if (!state.currentSession) {
-    const suggested = suggestNextDay();
-    meta.innerHTML = `<span>Suggested next:</span> <span class="now">${DAY_LABEL[suggested]}</span> <span>- tap to start</span>`;
-    return;
-  }
-  const d = new Date(state.currentSession.started);
-  const time = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  meta.innerHTML = `<span>Today:</span> <span class="now">${DAY_LABEL[state.currentSession.day]}</span> <span>- started ${time}</span>`;
+  const suggested = suggestNextDay();
+  $("#sessionMeta").innerHTML = state.currentSession
+    ? `<span>Picking a different day starts a new workout.</span>`
+    : `<span>Suggested next:</span> <span class="now">${DAY_LABEL[suggested]}</span> <span>- tap to start</span>`;
 }
 
 // UI-only state (not persisted)
-const expanded = new Set();   // ids of completed exercises the user re-opened
 let customOpen = null;        // "exId:setIdx" of the set with the custom input open
+let slideDir = "";            // "l" | "r" animation for the next card render
 const KIND_LABEL = { reps: "REPS", secs: "SECONDS", steps: "STEPS", m: "METERS" };
 
-function renderExercises() {
-  const list = $("#exerciseList");
-  const banner = $("#completeBanner");
-  banner.innerHTML = "";
-  $("#fabRow").hidden = !state.currentSession;
-
-  if (!state.currentSession) {
-    list.innerHTML = `<div class="empty">Pick a day above to begin.<br/>Your last completed: ${state.history.length ? DAY_LABEL[state.history[state.history.length-1].day] + " on " + new Date(state.history[state.history.length-1].date).toLocaleDateString() : "none yet"}</div>`;
-    return;
+// Helpers for the exercise currently on screen.
+function sessionPlan() { return state.currentSession ? (state.plan[state.currentSession.day] || []) : []; }
+function sessEx(id) { return state.currentSession.exercises.find(e => e.id === id); }
+function isDone(id) { const sx = sessEx(id); return !!sx && sx.sets.length > 0 && sx.sets.every(s => s != null); }
+function curIndex() {
+  const plan = sessionPlan();
+  const i = plan.findIndex(p => p.id === state.currentSession.cur);
+  return i >= 0 ? i : 0;
+}
+// Next exercise (in plan order, wrapping) that still has unlogged sets; null if all done.
+function nextUnfinished(fromIdx) {
+  const plan = sessionPlan();
+  for (let k = 1; k <= plan.length; k++) {
+    const p = plan[(fromIdx + k) % plan.length];
+    if (!isDone(p.id)) return (fromIdx + k) % plan.length;
   }
+  return null;
+}
+function gotoExercise(idx) {
+  const plan = sessionPlan();
+  if (!plan[idx]) return;
+  const from = curIndex();
+  if (idx === from) return;
+  slideDir = idx > from ? "l" : "r";
+  state.currentSession.cur = plan[idx].id;
+  customOpen = null;
+  saveState();
+  window.scrollTo(0, 0);
+  renderExercises();
+}
 
+function renderExercises() {
+  if (!state.currentSession) return;
   reconcileSession();
   const sess = state.currentSession;
-  const plan = state.plan[sess.day] || [];
+  const plan = sessionPlan();
+  const ci = curIndex();
+  if (plan[ci] && sess.cur !== plan[ci].id) { sess.cur = plan[ci].id; saveState(); }
+
+  // Strip
+  $("#exStrip").innerHTML = plan.map((p, i) => {
+    const sx = sessEx(p.id);
+    const logged = sx ? sx.sets.filter(s => s != null).length : 0;
+    const done = isDone(p.id);
+    const cls = ["ex-dot", done ? "done" : (logged ? "partial" : ""), i === ci ? "current" : ""].join(" ");
+    return `<button class="${cls}" data-goto="${i}" aria-label="${escapeHtml(p.name)}">${done ? `<span class="tick">&#10003;</span>` : ""}${i + 1}</button>`;
+  }).join("");
+
+  // Current exercise card
+  const list = $("#exerciseList");
   list.innerHTML = "";
-
-  let totalSets = 0, doneSets = 0;
-  plan.forEach((p, idx) => {
-    const sx = sess.exercises.find(e => e.id === p.id);
-    if (!sx) return;
-    totalSets += sx.sets.length;
-    doneSets += sx.sets.filter(s => s != null).length;
-    list.appendChild(renderExerciseCard(p, sx, idx));
-  });
-
-  if (doneSets === totalSets && totalSets > 0) {
-    banner.innerHTML = `<div class="complete-banner">All sets logged. Tap "Finish workout" to save.</div>`;
+  const p = plan[ci];
+  if (p) {
+    const card = renderExerciseCard(p, sessEx(p.id), ci);
+    if (slideDir) card.classList.add(slideDir === "l" ? "anim-l" : "anim-r");
+    list.appendChild(card);
+  } else {
+    list.innerHTML = `<div class="empty">No exercises in this day. Add some in Settings.</div>`;
   }
+  slideDir = "";
+
+  // Totals, Next, Finish
+  const total = sess.exercises.reduce((n, e) => n + e.sets.length, 0);
+  const logged = sessionLoggedCount(sess);
+  const allDone = total > 0 && logged === total;
+  const ni = nextUnfinished(ci);
+  $("#nextSlot").innerHTML = (ni != null && ni !== ci)
+    ? `<button class="next-btn" data-goto="${ni}">Next: ${escapeHtml(plan[ni].name)} &rsaquo;</button>`
+    : "";
+  $("#completeBanner").innerHTML = allDone
+    ? `<div class="complete-banner">All sets logged. Tap "Finish workout" to save.</div>` : "";
+  $("#finishBtn").classList.toggle("primary", allDone);
 }
 
 function renderExerciseCard(p, sx, idx) {
@@ -790,51 +989,42 @@ function renderExerciseCard(p, sx, idx) {
   const kind = p.count;
   const allDone = sx.sets.every(s => s != null);
 
-  const collapsed = allDone && !expanded.has(p.id);
   const card = document.createElement("div");
-  card.className = "exercise" + (allDone ? " done" : "") + (collapsed ? " collapsed" : "");
+  card.className = "exercise" + (allDone ? " done" : "");
 
+  const bm = p.benchmark || [];
   const subBits = [];
   if (last) {
     const lastStr = lastSets.map(s => s == null ? "-" : fmtCount(s.count, kind)).join(" / ");
     const dateStr = new Date(last.entry.date).toLocaleDateString();
     subBits.push(`<span class="last">Last (${dateStr}): ${fmtWeight(lastWeight, lastUnit)} - ${lastStr}</span>`);
   } else {
-    subBits.push(`<span class="last">No prior data</span>`);
+    subBits.push(`<span class="last">No prior sessions</span>`);
   }
   if (bestEver) {
     subBits.push(`<span class="pr">PR: ${fmtWeight(bestEver.weight, bestEver.unit)} x ${fmtCount(bestEver.count, kind)}</span>`);
   }
-  if (bestAtCurrent && (!bestEver || bestEver.weight !== bestAtCurrent.weight)) {
-    subBits.push(`<span class="pr">Best at ${fmtWeight(sx.weight, p.unit)}: ${fmtCount(bestAtCurrent.count, kind)}</span>`);
-  }
 
-  // Progression hint: all sets logged at the same weight as last time,
-  // and every set matched or beat its counterpart.
+  // What happens to the benchmark at Finish, shown once every set is logged.
   let progressHint = "";
-  if (allDone && last && lastUnit === p.unit && lastWeight === sx.weight && lastSets.length) {
-    let compared = 0, beatAll = true, beatAny = false;
-    sx.sets.forEach((s, i) => {
-      const prev = (lastSets[i] && lastSets[i].count != null) ? lastSets[i].count : null;
-      if (prev == null || s == null) return;
-      compared++;
-      if (s.count < prev) beatAll = false;
-      if (s.count > prev) beatAny = true;
-    });
-    if (compared > 0 && beatAll) {
-      progressHint = `<div class="progress-hint">${beatAny ? "Beat" : "Matched"} last session at ${fmtWeight(sx.weight, p.unit)} - consider adding weight next time.</div>`;
-    }
+  if (allDone) {
+    const v = evaluateBenchmark(p, sx);
+    const msg = {
+      raised:   ["good", `Benchmark beaten. New benchmark at Finish: ${fmtBm(v.newBm)}.`],
+      weightUp: ["good", `Heavier than your ${fmtWeight(p.weight, p.unit)} default. At Finish, ${fmtWeight(v.newWeight, p.unit)} becomes the default with benchmark ${fmtBm(v.newBm)}.`],
+      matched:  ["",     `Matched the benchmark. Beat any set next time to raise it.`],
+      short:    ["dim",  `Short of the benchmark. It stays at ${fmtBm(bm)}.`],
+      lighter:  ["dim",  `Lighter than your ${fmtWeight(p.weight, p.unit)} default. Benchmark unchanged.`],
+    }[v.kind];
+    if (msg) progressHint = `<div class="progress-hint ${msg[0]}">${msg[1]}</div>`;
   }
 
-  const summary = sx.sets.map(s => s == null ? "-" : fmtCount(s.count, kind)).join(" / ");
   card.innerHTML = `
-    <div class="ex-head" ${allDone ? `data-toggle="${p.id}"` : ""}>
-      <div class="ex-name">${allDone ? `<span class="ex-check">&#10003;</span> ` : ""}${escapeHtml(p.name)}</div>
-      ${allDone
-        ? `<div class="ex-toggle">${collapsed ? "Tap to edit" : "Tap to hide"}</div>`
-        : `<div class="ex-num">${idx + 1}/${state.plan[state.currentSession.day].length}</div>`}
+    <div class="ex-head">
+      <div class="ex-name">${allDone ? `<span class="ex-check">&#10003;</span> ` : ""}${escapeHtml(p.name)}${p.note ? ` <span class="ex-note">${escapeHtml(p.note)}</span>` : ""}</div>
+      <div class="ex-num">${idx + 1}/${state.plan[state.currentSession.day].length}</div>
     </div>
-    <div class="ex-summary">${fmtWeight(sx.weight, p.unit)} &middot; ${summary}</div>
+    <div class="ex-target">Benchmark: <b>${fmtWeight(p.weight, p.unit)}</b> &times; <b>${fmtBm(bm)}</b></div>
     <div class="ex-sub">${subBits.join(" &middot; ")}</div>
     <div class="weight-row">
       <button class="step" data-w-step="-1" data-ex="${p.id}">-</button>
@@ -850,12 +1040,17 @@ function renderExerciseCard(p, sx, idx) {
   for (let i = 0; i < sx.sets.length; i++) {
     const setVal = sx.sets[i];
     const prevVal = (lastSets[i] && lastSets[i].count != null) ? lastSets[i].count : null;
-    const candidates = repCandidates(prevVal, kind);
+    const target = bm[i] != null ? bm[i] : null;
+    // Buttons centre on the benchmark for this set (fall back to last session).
+    const candidates = repCandidates(target != null ? target : prevVal, kind);
     const row = document.createElement("div");
     row.className = "set-row" + (setVal != null ? " logged" : "");
-    const prevTxt = prevVal != null
-      ? `Last: <b>${fmtCount(prevVal, kind)}</b>${lastWeight!=null ? " @ " + fmtWeight(lastWeight, lastUnit) : ""}`
-      : `No prior set`;
+    // "Target 11 · Last 10" (weight only shown when last time differed from today's).
+    const lastDiffWeight = lastWeight != null && (lastUnit !== p.unit || Math.abs(lastWeight - sx.weight) > 1e-6);
+    const bits = [];
+    if (target != null) bits.push(`Target <b class="tgt">${fmtCount(target, kind)}</b>`);
+    if (prevVal != null) bits.push(`Last <b>${fmtCount(prevVal, kind)}</b>${lastDiffWeight ? " @ " + fmtWeight(lastWeight, lastUnit) : ""}`);
+    const prevTxt = bits.length ? bits.join(" &middot; ") : "No target yet";
     const isCustomVal = setVal != null && !candidates.includes(setVal.count);
     const customHere = customOpen === `${p.id}:${i}`;
     row.innerHTML = `
@@ -908,13 +1103,10 @@ document.addEventListener("click", (e) => {
     return;
   }
 
-  const toggle = e.target.closest("[data-toggle]");
-  if (toggle) {
-    const id = toggle.dataset.toggle;
-    if (expanded.has(id)) expanded.delete(id); else expanded.add(id);
-    renderExercises();
-    return;
-  }
+  const go = e.target.closest("[data-goto]");
+  if (go) { gotoExercise(parseInt(go.dataset.goto, 10)); return; }
+  if (e.target.closest("#backBtn") || e.target.closest("#dayPill")) { showMenu(); return; }
+  if (e.target.closest("#resumeBtn")) { showWorkout(); return; }
 
   const customBtn = e.target.closest("[data-custom]");
   if (customBtn) {
@@ -987,7 +1179,7 @@ document.addEventListener("click", (e) => {
   }
   if (e.target.closest("#addExerciseBtn")) {
     const day = $("#editDaySel").value;
-    state.plan[day].push({ id: uid(), name: "New exercise", weight: 0, unit: "lb", sets: 3, count: "reps" });
+    state.plan[day].push({ id: uid(), name: "New exercise", note: "", weight: 0, unit: "lb", sets: 3, count: "reps", benchmark: [] });
     saveState(); renderEditor();
     return;
   }
@@ -1005,6 +1197,7 @@ document.addEventListener("input", (e) => {
 document.addEventListener("change", (e) => {
   if (e.target.id === "editDaySel") renderEditor();
   if (e.target.id === "historyDaySel") renderHistory();
+  if (e.target.matches && e.target.matches("[data-w-input]")) renderExercises();
   if (e.target.id === "vibrateChk") {
     state.settings.vibrate = e.target.checked;
     saveState();
@@ -1017,8 +1210,7 @@ document.addEventListener("change", (e) => {
       try {
         const data = JSON.parse(r.result);
         if (data.plan && data.history) {
-          state = data;
-          if (!state.settings) state.settings = { vibrate: false };
+          state = migrate(data);
           saveState();
           toast("Imported");
           render();
@@ -1050,13 +1242,46 @@ function logSet(exId, setIdx, value) {
   if (!ex) return;
   const wasDone = ex.sets.every(s => s != null);
   ex.sets[setIdx] = { count: value };
-  // Exercise just became complete: collapse it so the next one moves up.
-  if (!wasDone && ex.sets.every(s => s != null)) expanded.delete(exId);
   customOpen = null;
   saveState();
   renderExercises();
   startTimer(defaultRest);
+  // Exercise just became complete: after a beat (so you see the tick), jump to the
+  // next unfinished exercise. Skips ones you've already done out of order.
+  if (!wasDone && ex.sets.every(s => s != null)) {
+    const ni = nextUnfinished(curIndex());
+    if (ni != null) {
+      toast("Next: " + sessionPlan()[ni].name);
+      setTimeout(() => {
+        // Only move if you're still on the exercise you just finished.
+        if (view === "workout" && state.currentSession && state.currentSession.cur === exId) gotoExercise(ni);
+      }, 600);
+    } else {
+      toast("All sets logged - tap Finish workout");
+    }
+  }
 }
+
+// Swipe left/right on the exercise to move between exercises.
+(function setupSwipe() {
+  let x0 = null, y0 = null, t0 = 0;
+  const area = document.getElementById("workoutView");
+  area.addEventListener("touchstart", (e) => {
+    if (e.touches.length !== 1 || e.target.closest("input, select, .custom-row")) { x0 = null; return; }
+    x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; t0 = Date.now();
+  }, { passive: true });
+  area.addEventListener("touchend", (e) => {
+    if (x0 == null || view !== "workout") return;
+    const dx = e.changedTouches[0].clientX - x0;
+    const dy = e.changedTouches[0].clientY - y0;
+    x0 = null;
+    // Deliberate horizontal swipe only: long enough, mostly sideways, reasonably quick.
+    if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 2 || Date.now() - t0 > 600) return;
+    const ci = curIndex(), n = sessionPlan().length;
+    if (dx < 0 && ci < n - 1) gotoExercise(ci + 1);
+    if (dx > 0 && ci > 0) gotoExercise(ci - 1);
+  }, { passive: true });
+})();
 function unlogSet(exId, setIdx) {
   if (!state.currentSession) return;
   const ex = state.currentSession.exercises.find(e => e.id === exId);
@@ -1069,12 +1294,10 @@ function setWeight(exId, w) {
   if (!state.currentSession) return;
   const ex = state.currentSession.exercises.find(e => e.id === exId);
   if (!ex) return;
+  // Session only. The default weight changes at Finish, per the benchmark rules.
   ex.weight = w;
-  // Also persist as new "current" weight for the plan, so next session pre-fills with this.
-  const planEx = state.plan[state.currentSession.day].find(p => p.id === exId);
-  if (planEx) planEx.weight = w;
   saveState();
-  // Don't re-render the whole list (would steal focus from input). Update only the previous-set lines.
+  // No re-render here (would steal focus from the input); the "change" event re-renders on blur.
 }
 function bumpWeight(exId, dir) {
   if (!state.currentSession) return;
@@ -1083,7 +1306,6 @@ function bumpWeight(exId, dir) {
   const planEx = state.plan[state.currentSession.day].find(p => p.id === exId);
   const step = (planEx && planEx.unit === "kg") ? 1.25 : 2.5;
   ex.weight = Math.max(0, +(ex.weight + dir * step).toFixed(2));
-  if (planEx) planEx.weight = ex.weight;
   saveState();
   renderExercises();
 }
@@ -1179,6 +1401,14 @@ function renderEditor() {
           </select>
         </label>
       </div>
+      <div class="ed-grid ed-grid-2">
+        <label class="fld"><span>Benchmark per set</span>
+          <input data-f="benchmark" type="text" inputmode="text" value="${(p.benchmark || []).join(" / ")}" placeholder="e.g. 11 / 9 / 9" />
+        </label>
+        <label class="fld"><span>Note</span>
+          <input data-f="note" type="text" value="${escapeHtml(p.note || "")}" placeholder="e.g. per side" />
+        </label>
+      </div>
       <div class="actions">
         <button data-mv="-1" ${i === 0 ? "disabled style='opacity:.35'" : ""}>&uarr; Up</button>
         <button data-mv="1" ${i === items.length - 1 ? "disabled style='opacity:.35'" : ""}>&darr; Down</button>
@@ -1195,7 +1425,23 @@ function renderEditor() {
         if (!p) return;
         const f = el.dataset.f;
         if (f === "weight") p.weight = parseFloat(el.value) || 0;
-        else if (f === "sets") p.sets = Math.max(1, parseInt(el.value, 10) || 1);
+        else if (f === "sets") {
+          // Keep the benchmark the same length as the set count.
+          p.sets = Math.min(10, Math.max(1, parseInt(el.value, 10) || 1));
+          const bm = p.benchmark || [];
+          if (bm.length > p.sets) p.benchmark = bm.slice(0, p.sets);
+          else if (bm.length && bm.length < p.sets) {
+            while (bm.length < p.sets) bm.push(bm[bm.length - 1]);
+            p.benchmark = bm;
+          }
+          saveState(); renderEditor(); return;
+        } else if (f === "benchmark") {
+          // Accept "11/9/9", "11 9 9", "11, 9, 9". The benchmark sets the set count.
+          const nums = el.value.split(/[^0-9.]+/).filter(Boolean).map(Number).filter(n => !isNaN(n));
+          p.benchmark = nums.slice(0, 10);
+          if (nums.length) p.sets = p.benchmark.length;
+          saveState(); renderEditor(); return;
+        }
         else p[f] = el.value;
         saveState();
       });
@@ -1271,8 +1517,9 @@ function toast(msg) {
 // ============================================================
 // Boot
 // ============================================================
+// Reopening the app mid-workout drops you straight back into it.
+view = state.currentSession ? "workout" : "menu";
 render();
-// Pre-suggest the next day visually but don't auto-start; user taps to begin.
 
 // Real offline support: cache app shell via service worker.
 if ("serviceWorker" in navigator) {

@@ -1,19 +1,21 @@
 # Lift - personal workout app
 
-Single-file static web app. Tracks your Upper A / Lower A / Upper B / Lower B rotation, logs sets, shows last session and PRs so you've got something to chase.
+Single-file static web app. Tracks your Upper A / Lower A / Upper B / Lower B rotation, logs sets, and holds a benchmark (weight + target reps per set) for every exercise that only ever moves up.
 
 ## Features
 
 - Auto-suggests the next day in the rotation (UA > LA > UB > LB), with a manual override.
-- Per-set rep buttons centered on what you did *that set* last time. First set was 11, sets 2-4 were 8? You'll see different ranges per set.
+- Every exercise has a benchmark, e.g. Flat DB Bench 80 lb x 11 / 9 / 9. Rep buttons for each set centre on that set's target.
 - Custom value input ("+/-" button) opens an inline number pad box for anything outside the suggested range.
-- Finished exercises collapse to a one-line summary (tap to reopen), so the next one moves up.
-- Weight pre-fills from your last session and stays editable per workout.
+- One exercise on screen at a time. A numbered strip at the top shows status (green tick = done, green outline = partly done, yellow = on screen); tap any number to jump when a machine is taken. Swipe left/right also switches.
+- Finishing an exercise's last set jumps to the next unfinished one automatically.
+- Back arrow returns to the day picker without losing anything; a Resume card brings you back. Reopening the app mid-workout drops you straight back in.
+- Weight pre-fills from the benchmark weight. Changing it during a workout only affects that workout until you Finish.
 - "Last" line and "PR" line on every exercise.
 - Silent rest timer (90s default, plus 60s / 2m / 3m chips). Visual by default; optional vibrate-on-end toggle in Settings (Android only - iOS has no vibration API).
-- Progression hints: match or beat every set from last session at the same weight and the exercise card tells you to add weight next time.
+- Once all sets are logged, the card tells you what will happen to the benchmark at Finish.
 - Screen stays awake during an active session (Wake Lock API), so the rest timer doesn't vanish behind the lock screen.
-- Settings sheet: edit/add/reorder/delete exercises, change units (lb/kg/secs/steps/m). Plan edits made mid-session sync into the active workout.
+- Settings sheet: edit/add/reorder/delete exercises, benchmarks, notes, units (lb/kg) and count type (reps/secs/steps/m). Plan edits made mid-session sync into the active workout.
 - Export / import JSON backup. Uses the share sheet on iOS (Save to Files / AirDrop), falls back to a download elsewhere.
 - Genuinely works offline via a service worker (network-first, cache fallback). Add to home screen on iOS/Android for full-screen.
 
@@ -48,23 +50,20 @@ git push -u origin main
 
 Then enable Pages in the repo Settings as above.
 
-## How rep buttons work
+## How benchmarks work
 
-Each set looks at *that set's* prior value independently. Example, Incline DB Bench last session was 70 lb / 11-8-8-8:
+Applied when you tap **Finish workout**:
 
-- Set 1 buttons: 9, 10, 11, 12, 13, 14
-- Set 2 buttons: 6, 7, 8, 9, 10, 11
-- Set 3 buttons: 6, 7, 8, 9, 10, 11
-- Set 4 buttons: 6, 7, 8, 9, 10, 11
+1. **Same weight:** raised only if every set matches or beats its target and at least one beats it. The new benchmark is exactly what you did. 11/9/9 -> you do 12/9/10 -> new benchmark 12/9/10. You do 12/8/10 -> stays 11/9/9. Falling short never lowers it.
+2. **Heavier weight:** the heavier weight becomes the default and the reps you hit become the benchmark (even if lower).
+3. **Lighter weight, or a set not logged:** nothing changes.
 
-Tap the number you hit. Outside the range? Tap "+/-" and enter it.
+Rep buttons: target minus 2 to plus 3 (target outlined), so Flat DB Bench set 1 (target 11) shows 9-14. Outside the range? Tap "+/-".
 
 ## Editing exercises
 
-Tap the gear icon. Pick a day. Rename, change weight/unit/sets/count type, reorder with Up/Down, delete, or add new ones. Changes save instantly.
+Tap the sliders icon. Pick a day. Rename, change weight/unit/sets/count type, type a benchmark like `11/9/9` (it sets the number of sets), add a note (e.g. "per side"), reorder, delete, or add new ones. Changes save instantly.
 
-## Notes
+## Updating the default plan
 
-- Weight unit stays per-exercise (lb or kg) since you alternate based on what the equipment displays.
-- "Heavy DB Holds" uses seconds, "DB Hold Lunges" uses steps, "Farmers Carries" uses meters - already configured.
-- "Bicep Finishers" and "Wrist + Reverse Curls" are placeholders (weight 0, 3 sets reps). Edit them to whatever you actually do.
+Defaults live in `DEFAULT_PLAN` in `index.html`. After changing them, bump `PLAN_VERSION`: the new defaults are then applied once to the plan saved on the phone. History is never touched, and exercises listed under `aka` (old names) keep their history.

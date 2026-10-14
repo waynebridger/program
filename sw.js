@@ -1,4 +1,4 @@
-const CACHE = "lift-v2";
+const CACHE = "lift-v3";
 const ASSETS = [
   "./",
   "./index.html",
@@ -23,10 +23,12 @@ self.addEventListener("activate", (e) => {
 });
 
 // Network-first: always try for the freshest version, fall back to cache offline.
+// cache: "no-cache" makes the browser check with GitHub before reusing its HTTP cache
+// (GitHub Pages otherwise lets it reuse a stale copy for up to 10 minutes).
 self.addEventListener("fetch", (e) => {
   if (e.request.method !== "GET") return;
   e.respondWith(
-    fetch(e.request)
+    fetch(e.request, { cache: "no-cache" })
       .then((res) => {
         const copy = res.clone();
         caches.open(CACHE).then((c) => c.put(e.request, copy));
