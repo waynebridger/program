@@ -9,21 +9,25 @@ Single-file static web app. Tracks your Upper A / Lower A / Upper B / Lower B ro
 - Custom value input ("+/-" button) for anything outside the suggested range.
 - Weight pre-fills from your last session and stays editable per workout.
 - "Last" line and "PR" line on every exercise.
-- Silent rest timer (90s default, plus 60s / 2m / 3m chips). Visual only - no beep, no vibrate.
-- Settings sheet: edit/add/reorder/delete exercises, change units (lb/kg/secs/steps/m).
-- Export / import JSON backup (in case you ever clear browser data).
-- Works offline once loaded. Add to home screen on iOS/Android for full-screen.
+- Silent rest timer (90s default, plus 60s / 2m / 3m chips). Visual by default; optional vibrate-on-end toggle in Settings (Android only - iOS has no vibration API).
+- Progression hints: match or beat every set from last session at the same weight and the exercise card tells you to add weight next time.
+- Screen stays awake during an active session (Wake Lock API), so the rest timer doesn't vanish behind the lock screen.
+- Settings sheet: edit/add/reorder/delete exercises, change units (lb/kg/secs/steps/m). Plan edits made mid-session sync into the active workout.
+- Export / import JSON backup. Uses the share sheet on iOS (Save to Files / AirDrop), falls back to a download elsewhere.
+- Genuinely works offline via a service worker (network-first, cache fallback). Add to home screen on iOS/Android for full-screen.
 
 ## Storage
 
-All data lives in `localStorage` on the device. Nothing leaves your phone. Clearing browser data wipes history, so use Settings > Export JSON occasionally as backup.
+All data lives in `localStorage` on the device. Nothing leaves your phone. The app requests persistent storage (`navigator.storage.persist()`) to reduce the chance the browser evicts it, but clearing browser data still wipes history - use Settings > Export JSON occasionally as backup.
 
 ## Deploy to GitHub Pages
 
 1. Create a new repo on GitHub (e.g. `lift`). Make it private if you prefer.
-2. Push these three files to the repo root:
+2. Push these files to the repo root:
    - `index.html`
+   - `sw.js`
    - `manifest.webmanifest`
+   - `icon-180.png`, `icon-192.png`, `icon-512.png`
    - `README.md`
 3. In the repo: Settings > Pages > Source = "Deploy from a branch", Branch = `main`, Folder = `/ (root)`. Save.
 4. Wait ~30 seconds. The URL will be `https://<your-username>.github.io/lift/`.

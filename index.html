@@ -8,6 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="apple-mobile-web-app-title" content="Lift" />
 <link rel="manifest" href="manifest.webmanifest" />
+<link rel="apple-touch-icon" href="icon-180.png" />
 <title>Lift</title>
 <style>
 :root {
@@ -218,6 +219,13 @@ header.top {
 }
 .toast.show { opacity: 1; }
 
+.progress-hint {
+  margin-top: 10px;
+  background: rgba(232,255,90,0.08); border: 1px solid rgba(232,255,90,0.35);
+  color: var(--accent); border-radius: 12px; padding: 10px 12px;
+  font-size: 13px; font-weight: 600;
+}
+
 .complete-banner {
   background: rgba(102,224,122,0.1); border: 1px solid rgba(102,224,122,0.4);
   color: var(--good); border-radius: 14px; padding: 12px;
@@ -292,6 +300,12 @@ header.top {
     <div id="editList" style="margin-top:10px;"></div>
     <button class="btn" id="addExerciseBtn" style="margin-top:8px;">+ Add exercise</button>
 
+    <div class="section-title">Timer</div>
+    <label style="display:flex; align-items:center; gap:10px; padding:10px 4px; font-size:14px;">
+      <input type="checkbox" id="vibrateChk" style="width:20px; height:20px;" />
+      Vibrate when rest ends <span style="color:var(--muted); font-size:12px;">(Android only - iOS doesn't support it)</span>
+    </label>
+
     <div class="section-title">Data</div>
     <div style="display:flex; gap:8px;">
       <button class="btn" id="exportBtn">Export JSON</button>
@@ -345,6 +359,7 @@ function defaultState() {
     plan,
     history: seedHistory(plan),
     currentSession: null,
+    settings: { vibrate: false },
   };
 }
 
@@ -449,6 +464,8 @@ function defaultPlan() {
 function uid() { return Math.random().toString(36).slice(2, 10); }
 
 let state = loadState();
+// Migration: older saves have no settings object.
+if (!state.settings) state.settings = { vibrate: false };
 
 // ============================================================
 // Helpers
@@ -476,21 +493,23 @@ function findLastSession(day, exId) {
 
 // PR: best single set "score" at the highest weight ever used.
 // Score = count value (reps/secs/steps/meters). We also surface best at current weight.
-function findPR(day, exId, currentWeight) {
-  let bestEver = null;        // {weight, count}
-  let bestAtCurrent = null;   // {weight, count}
+function findPR(day, exId, currentWeight, currentUnit) {
+  let bestEver = null;        // {weight, count, unit}
+  let bestAtCurrent = null;   // {weight, count, unit}
   for (const h of state.history) {
     if (h.day !== day) continue;
     const ex = h.exercises.find(e => e.id === exId);
     if (!ex) continue;
+    const unit = ex.unit || currentUnit;
     for (const s of ex.sets || []) {
       if (!s || s.count == null) continue;
-      const cand = { weight: ex.weight, count: s.count };
+      const cand = { weight: ex.weight, count: s.count, unit };
       if (!bestEver || cand.weight > bestEver.weight ||
           (cand.weight === bestEver.weight && cand.count > bestEver.count)) {
         bestEver = cand;
       }
-      if (Math.abs(ex.weight - currentWeight) < 1e-6) {
+      // Only compare against entries logged in the same unit as now.
+      if (unit === currentUnit && Math.abs(ex.weight - currentWeight) < 1e-6) {
         if (!bestAtCurrent || cand.count > bestAtCurrent.count) {
           bestAtCurrent = cand;
         }
@@ -582,6 +601,30 @@ function resetSession() {
   render();
 }
 
+// Keep the active session in sync with plan edits made mid-session:
+// pick up newly added exercises and set-count changes without losing logged sets.
+function reconcileSession() {
+  const sess = state.currentSession;
+  if (!sess) return;
+  const plan = state.plan[sess.day] || [];
+  let changed = false;
+  for (const p of plan) {
+    const sx = sess.exercises.find(e => e.id === p.id);
+    if (!sx) {
+      sess.exercises.push({ id: p.id, weight: p.weight, sets: Array(p.sets).fill(null) });
+      changed = true;
+      continue;
+    }
+    while (sx.sets.length < p.sets) { sx.sets.push(null); changed = true; }
+    // Set count reduced: drop trailing *unlogged* sets only. Logged extras are kept.
+    while (sx.sets.length > p.sets && sx.sets[sx.sets.length - 1] == null) {
+      sx.sets.pop();
+      changed = true;
+    }
+  }
+  if (changed) saveState();
+}
+
 // ============================================================
 // Rendering
 // ============================================================
@@ -589,7 +632,30 @@ function render() {
   renderDayBar();
   renderSessionMeta();
   renderExercises();
+  updateWakeLock();
 }
+
+// ============================================================
+// Wake lock: keep the screen on while a session is active
+// ============================================================
+let wakeLock = null;
+async function updateWakeLock() {
+  if (!("wakeLock" in navigator)) return;
+  const want = !!state.currentSession;
+  if (want && !wakeLock && document.visibilityState === "visible") {
+    try {
+      wakeLock = await navigator.wakeLock.request("screen");
+      wakeLock.addEventListener("release", () => { wakeLock = null; });
+    } catch (e) { /* denied (e.g. low battery) - not critical */ }
+  } else if (!want && wakeLock) {
+    try { wakeLock.release(); } catch (e) {}
+    wakeLock = null;
+  }
+}
+// Wake locks auto-release when the app is backgrounded; re-acquire on return.
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") updateWakeLock();
+});
 
 function renderDayBar() {
   const suggested = suggestNextDay();
@@ -623,6 +689,7 @@ function renderExercises() {
     return;
   }
 
+  reconcileSession();
   const sess = state.currentSession;
   const plan = state.plan[sess.day] || [];
   list.innerHTML = "";
@@ -631,7 +698,7 @@ function renderExercises() {
   plan.forEach((p, idx) => {
     const sx = sess.exercises.find(e => e.id === p.id);
     if (!sx) return;
-    totalSets += p.sets;
+    totalSets += sx.sets.length;
     doneSets += sx.sets.filter(s => s != null).length;
     list.appendChild(renderExerciseCard(p, sx, idx));
   });
@@ -645,7 +712,8 @@ function renderExerciseCard(p, sx, idx) {
   const last = findLastSession(state.currentSession.day, p.id);
   const lastSets = last ? (last.exercise.sets || []) : [];
   const lastWeight = last ? last.exercise.weight : null;
-  const { bestEver, bestAtCurrent } = findPR(state.currentSession.day, p.id, sx.weight);
+  const lastUnit = last ? (last.exercise.unit || p.unit) : p.unit;
+  const { bestEver, bestAtCurrent } = findPR(state.currentSession.day, p.id, sx.weight, p.unit);
   const kind = p.count;
   const allDone = sx.sets.every(s => s != null);
 
@@ -656,15 +724,32 @@ function renderExerciseCard(p, sx, idx) {
   if (last) {
     const lastStr = lastSets.map(s => s == null ? "-" : fmtCount(s.count, kind)).join(" / ");
     const dateStr = new Date(last.entry.date).toLocaleDateString();
-    subBits.push(`<span class="last">Last (${dateStr}): ${fmtWeight(lastWeight, p.unit)} - ${lastStr}</span>`);
+    subBits.push(`<span class="last">Last (${dateStr}): ${fmtWeight(lastWeight, lastUnit)} - ${lastStr}</span>`);
   } else {
     subBits.push(`<span class="last">No prior data</span>`);
   }
   if (bestEver) {
-    subBits.push(`<span class="pr">PR: ${fmtWeight(bestEver.weight, p.unit)} x ${fmtCount(bestEver.count, kind)}</span>`);
+    subBits.push(`<span class="pr">PR: ${fmtWeight(bestEver.weight, bestEver.unit)} x ${fmtCount(bestEver.count, kind)}</span>`);
   }
   if (bestAtCurrent && (!bestEver || bestEver.weight !== bestAtCurrent.weight)) {
     subBits.push(`<span class="pr">Best at ${fmtWeight(sx.weight, p.unit)}: ${fmtCount(bestAtCurrent.count, kind)}</span>`);
+  }
+
+  // Progression hint: all sets logged at the same weight as last time,
+  // and every set matched or beat its counterpart.
+  let progressHint = "";
+  if (allDone && last && lastUnit === p.unit && lastWeight === sx.weight && lastSets.length) {
+    let compared = 0, beatAll = true, beatAny = false;
+    sx.sets.forEach((s, i) => {
+      const prev = (lastSets[i] && lastSets[i].count != null) ? lastSets[i].count : null;
+      if (prev == null || s == null) return;
+      compared++;
+      if (s.count < prev) beatAll = false;
+      if (s.count > prev) beatAny = true;
+    });
+    if (compared > 0 && beatAll) {
+      progressHint = `<div class="progress-hint">${beatAny ? "Beat" : "Matched"} last session at ${fmtWeight(sx.weight, p.unit)} - consider adding weight next time.</div>`;
+    }
   }
 
   card.innerHTML = `
@@ -680,17 +765,18 @@ function renderExerciseCard(p, sx, idx) {
       <span class="unit">${p.unit}</span>
     </div>
     <div class="sets" data-sets="${p.id}"></div>
+    ${progressHint}
   `;
 
   const setsEl = card.querySelector('[data-sets]');
-  for (let i = 0; i < p.sets; i++) {
+  for (let i = 0; i < sx.sets.length; i++) {
     const setVal = sx.sets[i];
     const prevVal = (lastSets[i] && lastSets[i].count != null) ? lastSets[i].count : null;
     const candidates = repCandidates(prevVal, kind);
     const row = document.createElement("div");
     row.className = "set-row" + (setVal != null ? " logged" : "");
     const prevTxt = prevVal != null
-      ? `Last: <b>${fmtCount(prevVal, kind)}</b>${lastWeight!=null ? " @ " + fmtWeight(lastWeight, p.unit) : ""}`
+      ? `Last: <b>${fmtCount(prevVal, kind)}</b>${lastWeight!=null ? " @ " + fmtWeight(lastWeight, lastUnit) : ""}`
       : `No prior set`;
     row.innerHTML = `
       <div class="set-line">
@@ -775,7 +861,12 @@ document.addEventListener("click", (e) => {
   if (e.target.closest("#timerStop")) { stopTimer(); return; }
   if (e.target.closest("#timerDisplay")) { startTimer(defaultRest); return; }
 
-  if (e.target.closest("#settingsBtn")) { openSheet("settingsSheet"); renderEditor(); return; }
+  if (e.target.closest("#settingsBtn")) {
+    openSheet("settingsSheet");
+    renderEditor();
+    $("#vibrateChk").checked = !!state.settings.vibrate;
+    return;
+  }
   if (e.target.closest("#historyBtn")) { openSheet("historySheet"); renderHistory(); return; }
   if (e.target.closest("[data-close]")) { closeSheets(); return; }
 
@@ -811,6 +902,10 @@ document.addEventListener("input", (e) => {
 document.addEventListener("change", (e) => {
   if (e.target.id === "editDaySel") renderEditor();
   if (e.target.id === "historyDaySel") renderHistory();
+  if (e.target.id === "vibrateChk") {
+    state.settings.vibrate = e.target.checked;
+    saveState();
+  }
   if (e.target.id === "importFile") {
     const f = e.target.files[0];
     if (!f) return;
@@ -820,6 +915,7 @@ document.addEventListener("change", (e) => {
         const data = JSON.parse(r.result);
         if (data.plan && data.history) {
           state = data;
+          if (!state.settings) state.settings = { vibrate: false };
           saveState();
           toast("Imported");
           render();
@@ -908,6 +1004,9 @@ function tickTimer() {
     stopTimer();
     $("#timerBig").textContent = "GO";
     $("#timerLabel").textContent = "READY";
+    if (state.settings.vibrate && navigator.vibrate) {
+      navigator.vibrate([200, 100, 200]);
+    }
   }
 }
 
@@ -995,12 +1094,27 @@ function renderHistory() {
   }).join("");
 }
 
-function exportData() {
-  const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
+async function exportData() {
+  const json = JSON.stringify(state, null, 2);
+  const filename = `lift-backup-${new Date().toISOString().slice(0,10)}.json`;
+  // In an installed PWA on iOS, programmatic downloads are unreliable.
+  // Prefer the share sheet (Save to Files / AirDrop / etc.) when available.
+  if (navigator.canShare) {
+    const file = new File([json], filename, { type: "application/json" });
+    if (navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: "Lift backup" });
+        return;
+      } catch (e) {
+        if (e.name === "AbortError") return; // user cancelled
+        // fall through to download
+      }
+    }
+  }
+  const url = URL.createObjectURL(new Blob([json], { type: "application/json" }));
   const a = document.createElement("a");
   a.href = url;
-  a.download = `lift-backup-${new Date().toISOString().slice(0,10)}.json`;
+  a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -1019,6 +1133,15 @@ function toast(msg) {
 // ============================================================
 render();
 // Pre-suggest the next day visually but don't auto-start; user taps to begin.
+
+// Real offline support: cache app shell via service worker.
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("./sw.js").catch(() => {});
+}
+// Ask the browser not to evict localStorage under storage pressure.
+if (navigator.storage && navigator.storage.persist) {
+  navigator.storage.persist().catch(() => {});
+}
 </script>
 </body>
 </html>
