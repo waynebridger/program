@@ -6,7 +6,8 @@ Single-file static web app. Tracks your Upper A / Lower A / Upper B / Lower B ro
 
 - Auto-suggests the next day in the rotation (UA > LA > UB > LB), with a manual override.
 - Per-set rep buttons centered on what you did *that set* last time. First set was 11, sets 2-4 were 8? You'll see different ranges per set.
-- Custom value input ("+/-" button) for anything outside the suggested range.
+- Custom value input ("+/-" button) opens an inline number pad box for anything outside the suggested range.
+- Finished exercises collapse to a one-line summary (tap to reopen), so the next one moves up.
 - Weight pre-fills from your last session and stays editable per workout.
 - "Last" line and "PR" line on every exercise.
 - Silent rest timer (90s default, plus 60s / 2m / 3m chips). Visual by default; optional vibrate-on-end toggle in Settings (Android only - iOS has no vibration API).

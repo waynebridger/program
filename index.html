@@ -43,10 +43,11 @@ header.top {
 .spacer { flex: 1; }
 .icon-btn {
   background: var(--surface); border: 1px solid var(--border);
-  width: 40px; height: 40px; border-radius: 12px;
+  width: 44px; height: 44px; border-radius: 12px;
   display: inline-flex; align-items: center; justify-content: center;
-  font-size: 18px;
+  color: var(--text);
 }
+.icon-btn svg { width: 22px; height: 22px; }
 
 .day-bar {
   display: flex; gap: 8px; flex-wrap: wrap;
@@ -57,16 +58,16 @@ header.top {
 }
 .day-bar .label { font-size: 12px; color: var(--muted); padding: 6px 4px; width: 100%; }
 .day-chip {
-  flex: 1 1 calc(25% - 8px);
-  text-align: center;
+  flex: 1 1 0; min-width: 0;
+  text-align: center; white-space: nowrap;
   background: var(--surface-2); color: var(--text);
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 10px 6px;
-  font-weight: 700; letter-spacing: 0.4px;
+  padding: 12px 2px;
+  font-weight: 700; font-size: 14px;
 }
-.day-chip.active { background: #2dd4bf; color: #000; border-color: #2dd4bf; }
-.day-chip.suggested:not(.active) { border-color: #2dd4bf; }
+.day-chip.active { background: var(--accent); color: #000; border-color: var(--accent); }
+.day-chip.suggested:not(.active) { border-color: var(--accent); }
 
 .session-meta {
   display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap;
@@ -106,8 +107,9 @@ header.top {
 }
 .weight-row .unit { color: var(--muted); font-size: 13px; min-width: 28px; text-align: right; }
 
-.sets { display: grid; gap: 8px; }
+.sets { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
 .set-row {
+  min-width: 0;
   background: var(--surface-2); border: 1px solid var(--border);
   border-radius: 14px; padding: 10px;
 }
@@ -116,16 +118,37 @@ header.top {
 .set-tag { font-size: 12px; color: var(--muted); font-weight: 600; letter-spacing: 0.5px; }
 .set-prev { font-size: 12px; color: var(--muted); }
 .set-prev b { color: var(--text); font-weight: 600; }
-.rep-grid { display: flex; gap: 6px; flex-wrap: wrap; }
+/* One row of 7 equal buttons: 6 suggestions + custom. */
+.rep-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; }
 .rep-btn {
-  flex: 1 1 56px; min-width: 50px;
+  min-width: 0;
   background: var(--bg); border: 1px solid var(--border);
-  border-radius: 12px; padding: 12px 6px;
-  font-size: 16px; font-weight: 700;
+  border-radius: 11px; padding: 13px 0;
+  font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums;
+  white-space: nowrap; overflow: hidden;
 }
 .rep-btn.center { border-color: var(--accent-2); }
 .rep-btn.selected { background: var(--accent); color: #000; border-color: var(--accent); }
-.rep-btn.custom { color: var(--muted); }
+.rep-btn.custom { color: var(--muted); font-size: 14px; }
+.rep-btn.custom.selected { color: #000; font-size: 16px; }
+
+.custom-row { display: flex; gap: 6px; margin-top: 8px; }
+.custom-row input { flex: 1; min-width: 0; font-size: 18px; font-weight: 700; text-align: center; padding: 10px; }
+.custom-row button {
+  border-radius: 11px; padding: 0 16px; font-weight: 800;
+  background: var(--accent); color: #000; border: none;
+}
+.custom-row button.cancel { background: var(--surface); color: var(--muted); border: 1px solid var(--border); font-weight: 600; }
+
+/* Completed exercise collapses to a summary; tap to expand. */
+.exercise.collapsed .weight-row,
+.exercise.collapsed .sets { display: none; }
+.exercise.collapsed .ex-sub { display: none; }
+.ex-summary { display: none; margin-top: 6px; font-size: 14px; color: var(--good); font-weight: 600; font-variant-numeric: tabular-nums; }
+.exercise.collapsed .ex-summary { display: block; }
+.exercise.done .ex-head { cursor: pointer; }
+.ex-check { color: var(--good); font-weight: 800; }
+.ex-toggle { color: var(--muted); font-size: 12px; }
 
 .row-actions { display: flex; gap: 8px; margin-top: 8px; }
 .row-actions .undo {
@@ -164,7 +187,12 @@ header.top {
   border-radius: 12px; padding: 10px 4px; font-weight: 800; font-size: 14px;
 }
 
-.fab-row { display: flex; gap: 8px; justify-content: space-between; margin-top: 8px; }
+.fab-row { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+.fab-row[hidden] { display: none; }
+.link-btn {
+  background: none; border: none; color: var(--muted);
+  padding: 12px; font-size: 14px; text-decoration: underline; text-underline-offset: 3px;
+}
 .btn {
   flex: 1; padding: 14px; border-radius: 14px;
   background: var(--surface); color: var(--text);
@@ -174,43 +202,66 @@ header.top {
 .btn.ghost { background: transparent; }
 .btn.warn { color: var(--danger); }
 
-/* Settings sheet */
+/* Sheets (Settings, History).
+   The card is a column: a fixed header that never scrolls, and a scrolling body.
+   The sheet sits below the iPhone status bar / notch via safe-area padding. */
 .sheet {
   position: fixed; inset: 0; background: rgba(0,0,0,0.6);
   display: none; align-items: flex-end; justify-content: center; z-index: 10;
+  padding-top: calc(env(safe-area-inset-top) + 12px);
 }
 .sheet.open { display: flex; }
 .sheet-card {
   background: var(--bg); width: 100%; max-width: 720px;
   border-top-left-radius: 20px; border-top-right-radius: 20px;
-  padding: 14px 14px calc(env(safe-area-inset-bottom) + 14px);
-  max-height: 92vh; overflow-y: auto;
-  border: 1px solid var(--border);
+  max-height: 100%;
+  display: flex; flex-direction: column; overflow: hidden;
+  border: 1px solid var(--border); border-bottom: none;
 }
-.sheet-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.sheet-head {
+  flex: none;
+  display: flex; align-items: center; gap: 8px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+}
 .sheet-title { font-size: 18px; font-weight: 800; flex: 1; }
 .sheet-close {
-  background: var(--surface-2); border: 1px solid var(--border);
-  width: 36px; height: 36px; border-radius: 10px;
+  background: var(--accent); color: #000; border: none;
+  height: 40px; padding: 0 18px; border-radius: 12px;
+  font-weight: 800; font-size: 15px;
 }
-.section-title { font-size: 12px; color: var(--muted); margin: 14px 4px 6px; text-transform: uppercase; letter-spacing: 0.6px; }
+.sheet-body {
+  flex: 1; min-height: 0;
+  overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+  padding: 4px 14px calc(env(safe-area-inset-bottom) + 20px);
+}
+.sheet-body > select { width: 100%; margin-top: 4px; }
+body.sheet-open { overflow: hidden; }
+.section-title { font-size: 12px; color: var(--muted); margin: 18px 4px 8px; text-transform: uppercase; letter-spacing: 0.6px; }
 
 .ex-edit {
   background: var(--surface); border: 1px solid var(--border);
   border-radius: 14px; padding: 10px; margin-bottom: 8px;
 }
-.ex-edit .row { display: grid; grid-template-columns: 1fr 80px 80px 80px; gap: 8px; align-items: center; }
-.ex-edit .row input, .ex-edit .row select { padding: 8px; }
-.ex-edit .actions { display: flex; gap: 8px; margin-top: 8px; }
+.ex-edit .ed-name { width: 100%; font-weight: 700; }
+.ex-edit .ed-grid {
+  display: grid; gap: 8px; margin-top: 8px;
+  grid-template-columns: minmax(0,1.1fr) minmax(0,0.9fr) minmax(0,0.8fr) minmax(0,1.2fr);
+}
+.fld { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.fld span { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; padding-left: 2px; }
+.fld input, .fld select { width: 100%; min-width: 0; padding: 9px 8px; }
+.ex-edit .actions { display: flex; gap: 8px; margin-top: 10px; }
 .ex-edit .actions button { flex: 1; padding: 10px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border); color: var(--text); }
 .ex-edit .actions .del { color: var(--danger); border-color: rgba(255,90,108,0.4); }
 
-.history-row { display: flex; justify-content: space-between; padding: 8px 4px; border-bottom: 1px solid var(--border); font-size: 13px; }
+.history-row { display: flex; justify-content: space-between; gap: 12px; padding: 8px 4px; border-bottom: 1px solid var(--border); font-size: 13px; }
+.history-row span:last-child { text-align: right; color: var(--muted); }
 .history-row:last-child { border-bottom: none; }
 
 .toast {
   position: fixed; left: 50%; transform: translateX(-50%);
-  bottom: calc(env(safe-area-inset-bottom) + 96px);
+  top: calc(env(safe-area-inset-top) + 12px);
   background: var(--surface); color: var(--text);
   border: 1px solid var(--border); border-radius: 12px;
   padding: 10px 14px; font-size: 13px; z-index: 20;
@@ -236,9 +287,10 @@ header.top {
   text-align: center; color: var(--muted); padding: 40px 20px;
 }
 
-@media (max-width: 380px) {
-  .rep-btn { flex: 1 1 48px; padding: 10px 4px; font-size: 15px; }
-  .ex-edit .row { grid-template-columns: 1fr 60px 60px 60px; }
+@media (max-width: 360px) {
+  .rep-grid { gap: 4px; }
+  .rep-btn { font-size: 15px; padding: 12px 0; }
+  .rep-btn.custom { font-size: 13px; }
 }
 </style>
 </head>
@@ -247,8 +299,17 @@ header.top {
   <header class="top">
     <div class="logo">Lift<span class="dot">.</span></div>
     <div class="spacer"></div>
-    <button class="icon-btn" id="historyBtn" title="History">H</button>
-    <button class="icon-btn" id="settingsBtn" title="Settings">&#9881;</button>
+    <button class="icon-btn" id="historyBtn" title="History" aria-label="History">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 12a9 9 0 1 0 3-6.7"/><polyline points="3 4 3 9 8 9"/><polyline points="12 7 12 12 15.5 14"/>
+      </svg>
+    </button>
+    <button class="icon-btn" id="settingsBtn" title="Settings" aria-label="Settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/>
+        <circle cx="9" cy="6" r="2.2" fill="var(--surface)"/><circle cx="15" cy="12" r="2.2" fill="var(--surface)"/><circle cx="7" cy="18" r="2.2" fill="var(--surface)"/>
+      </svg>
+    </button>
   </header>
 
   <div class="day-bar">
@@ -263,9 +324,9 @@ header.top {
   <div id="completeBanner"></div>
   <div id="exerciseList"></div>
 
-  <div class="fab-row">
-    <button class="btn ghost" id="resetSessionBtn">Reset session</button>
+  <div class="fab-row" id="fabRow" hidden>
     <button class="btn primary" id="finishBtn">Finish workout</button>
+    <button class="link-btn" id="resetSessionBtn">Discard workout</button>
   </div>
 </div>
 
@@ -287,8 +348,9 @@ header.top {
   <div class="sheet-card">
     <div class="sheet-head">
       <div class="sheet-title">Settings</div>
-      <button class="sheet-close" data-close>X</button>
+      <button class="sheet-close" data-close>Done</button>
     </div>
+    <div class="sheet-body">
 
     <div class="section-title">Edit exercises</div>
     <select id="editDaySel">
@@ -301,9 +363,9 @@ header.top {
     <button class="btn" id="addExerciseBtn" style="margin-top:8px;">+ Add exercise</button>
 
     <div class="section-title">Timer</div>
-    <label style="display:flex; align-items:center; gap:10px; padding:10px 4px; font-size:14px;">
-      <input type="checkbox" id="vibrateChk" style="width:20px; height:20px;" />
-      Vibrate when rest ends <span style="color:var(--muted); font-size:12px;">(Android only - iOS doesn't support it)</span>
+    <label style="display:flex; align-items:flex-start; gap:12px; padding:10px 4px; font-size:15px;">
+      <input type="checkbox" id="vibrateChk" style="width:22px; height:22px; flex:none; margin:0;" />
+      <span>Vibrate when rest ends<br/><span style="color:var(--muted); font-size:12px;">Android only - iOS doesn't support it</span></span>
     </label>
 
     <div class="section-title">Data</div>
@@ -312,7 +374,8 @@ header.top {
       <button class="btn" id="importBtn">Import JSON</button>
       <input type="file" id="importFile" accept="application/json" style="display:none" />
     </div>
-    <button class="btn warn" id="wipeBtn" style="margin-top:8px;">Wipe all data</button>
+    <button class="btn warn" id="wipeBtn" style="margin-top:8px; width:100%;">Wipe all data</button>
+    </div>
   </div>
 </div>
 
@@ -320,15 +383,17 @@ header.top {
   <div class="sheet-card">
     <div class="sheet-head">
       <div class="sheet-title">History</div>
-      <button class="sheet-close" data-close>X</button>
+      <button class="sheet-close" data-close>Done</button>
     </div>
-    <select id="historyDaySel">
+    <div class="sheet-body">
+    <select id="historyDaySel" style="margin-top:12px;">
       <option value="UA">Upper A</option>
       <option value="LA">Lower A</option>
       <option value="UB">Upper B</option>
       <option value="LB">Lower B</option>
     </select>
     <div id="historyList" style="margin-top:10px;"></div>
+    </div>
   </div>
 </div>
 
@@ -558,6 +623,8 @@ function startSession(day) {
     weight: p.weight,
     sets: Array(p.sets).fill(null),
   }));
+  expanded.clear();
+  customOpen = null;
   state.currentSession = {
     day,
     started: Date.now(),
@@ -679,10 +746,16 @@ function renderSessionMeta() {
   meta.innerHTML = `<span>Today:</span> <span class="now">${DAY_LABEL[state.currentSession.day]}</span> <span>- started ${time}</span>`;
 }
 
+// UI-only state (not persisted)
+const expanded = new Set();   // ids of completed exercises the user re-opened
+let customOpen = null;        // "exId:setIdx" of the set with the custom input open
+const KIND_LABEL = { reps: "REPS", secs: "SECONDS", steps: "STEPS", m: "METERS" };
+
 function renderExercises() {
   const list = $("#exerciseList");
   const banner = $("#completeBanner");
   banner.innerHTML = "";
+  $("#fabRow").hidden = !state.currentSession;
 
   if (!state.currentSession) {
     list.innerHTML = `<div class="empty">Pick a day above to begin.<br/>Your last completed: ${state.history.length ? DAY_LABEL[state.history[state.history.length-1].day] + " on " + new Date(state.history[state.history.length-1].date).toLocaleDateString() : "none yet"}</div>`;
@@ -717,8 +790,9 @@ function renderExerciseCard(p, sx, idx) {
   const kind = p.count;
   const allDone = sx.sets.every(s => s != null);
 
+  const collapsed = allDone && !expanded.has(p.id);
   const card = document.createElement("div");
-  card.className = "exercise" + (allDone ? " done" : "");
+  card.className = "exercise" + (allDone ? " done" : "") + (collapsed ? " collapsed" : "");
 
   const subBits = [];
   if (last) {
@@ -752,11 +826,15 @@ function renderExerciseCard(p, sx, idx) {
     }
   }
 
+  const summary = sx.sets.map(s => s == null ? "-" : fmtCount(s.count, kind)).join(" / ");
   card.innerHTML = `
-    <div class="ex-head">
-      <div class="ex-name">${escapeHtml(p.name)}</div>
-      <div class="ex-num">${idx + 1}/${state.plan[state.currentSession.day].length}</div>
+    <div class="ex-head" ${allDone ? `data-toggle="${p.id}"` : ""}>
+      <div class="ex-name">${allDone ? `<span class="ex-check">&#10003;</span> ` : ""}${escapeHtml(p.name)}</div>
+      ${allDone
+        ? `<div class="ex-toggle">${collapsed ? "Tap to edit" : "Tap to hide"}</div>`
+        : `<div class="ex-num">${idx + 1}/${state.plan[state.currentSession.day].length}</div>`}
     </div>
+    <div class="ex-summary">${fmtWeight(sx.weight, p.unit)} &middot; ${summary}</div>
     <div class="ex-sub">${subBits.join(" &middot; ")}</div>
     <div class="weight-row">
       <button class="step" data-w-step="-1" data-ex="${p.id}">-</button>
@@ -778,21 +856,28 @@ function renderExerciseCard(p, sx, idx) {
     const prevTxt = prevVal != null
       ? `Last: <b>${fmtCount(prevVal, kind)}</b>${lastWeight!=null ? " @ " + fmtWeight(lastWeight, lastUnit) : ""}`
       : `No prior set`;
+    const isCustomVal = setVal != null && !candidates.includes(setVal.count);
+    const customHere = customOpen === `${p.id}:${i}`;
     row.innerHTML = `
       <div class="set-line">
-        <span class="set-tag">SET ${i+1}</span>
+        <span class="set-tag">SET ${i+1}${kind !== "reps" ? " &middot; " + KIND_LABEL[kind] : ""}</span>
         <span class="set-prev">${prevTxt}</span>
       </div>
       <div class="rep-grid">
         ${candidates.map((c, ci) => `
           <button class="rep-btn ${ci === 2 ? "center" : ""} ${setVal != null && setVal.count === c ? "selected" : ""}"
-                  data-log data-ex="${p.id}" data-set="${i}" data-val="${c}">
-            ${fmtCount(c, kind)}
-          </button>
+                  data-log data-ex="${p.id}" data-set="${i}" data-val="${c}">${c}</button>
         `).join("")}
-        <button class="rep-btn custom" data-custom data-ex="${p.id}" data-set="${i}">${setVal != null && !candidates.includes(setVal.count) ? fmtCount(setVal.count, kind) : "+/-"}</button>
+        <button class="rep-btn custom ${isCustomVal ? "selected" : ""}" data-custom data-ex="${p.id}" data-set="${i}">${isCustomVal ? setVal.count : "+/-"}</button>
       </div>
-      ${setVal != null ? `<div class="row-actions"><button class="undo" data-undo data-ex="${p.id}" data-set="${i}">Undo set ${i+1}</button></div>` : ""}
+      ${customHere ? `
+        <div class="custom-row">
+          <input type="number" inputmode="decimal" step="any" min="0" placeholder="${prevVal != null ? prevVal : ""}"
+                 value="${setVal != null ? setVal.count : ""}" data-custom-input data-ex="${p.id}" data-set="${i}" />
+          <button data-custom-ok data-ex="${p.id}" data-set="${i}">Log</button>
+          <button class="cancel" data-custom-cancel>Cancel</button>
+        </div>` : ""}
+      ${setVal != null && !customHere ? `<div class="row-actions"><button class="undo" data-undo data-ex="${p.id}" data-set="${i}">Undo set ${i+1}</button></div>` : ""}
     `;
     setsEl.appendChild(row);
   }
@@ -823,15 +908,31 @@ document.addEventListener("click", (e) => {
     return;
   }
 
+  const toggle = e.target.closest("[data-toggle]");
+  if (toggle) {
+    const id = toggle.dataset.toggle;
+    if (expanded.has(id)) expanded.delete(id); else expanded.add(id);
+    renderExercises();
+    return;
+  }
+
   const customBtn = e.target.closest("[data-custom]");
   if (customBtn) {
-    const exId = customBtn.dataset.ex;
-    const setIdx = parseInt(customBtn.dataset.set, 10);
-    const v = prompt("Enter custom value:");
-    if (v != null && v !== "") {
-      const n = parseFloat(v);
-      if (!isNaN(n) && n >= 0) logSet(exId, setIdx, n);
-    }
+    const key = `${customBtn.dataset.ex}:${customBtn.dataset.set}`;
+    customOpen = customOpen === key ? null : key;
+    renderExercises();
+    // Focus synchronously inside the tap so iOS opens the number pad.
+    const inp = $(`[data-custom-input][data-ex="${customBtn.dataset.ex}"][data-set="${customBtn.dataset.set}"]`);
+    if (inp) inp.focus();
+    return;
+  }
+
+  const customOk = e.target.closest("[data-custom-ok]");
+  if (customOk) { submitCustom(customOk.dataset.ex, customOk.dataset.set); return; }
+
+  if (e.target.closest("[data-custom-cancel]")) {
+    customOpen = null;
+    renderExercises();
     return;
   }
 
@@ -869,6 +970,8 @@ document.addEventListener("click", (e) => {
   }
   if (e.target.closest("#historyBtn")) { openSheet("historySheet"); renderHistory(); return; }
   if (e.target.closest("[data-close]")) { closeSheets(); return; }
+  // Tap the dimmed backdrop (outside the card) to close.
+  if (e.target.classList && e.target.classList.contains("sheet")) { closeSheets(); return; }
 
   if (e.target.closest("#finishBtn")) { finishSession(); return; }
   if (e.target.closest("#resetSessionBtn")) {
@@ -927,11 +1030,29 @@ document.addEventListener("change", (e) => {
   }
 });
 
+function submitCustom(exId, setIdx) {
+  const inp = $(`[data-custom-input][data-ex="${exId}"][data-set="${setIdx}"]`);
+  const n = inp ? parseFloat(inp.value) : NaN;
+  if (isNaN(n) || n < 0) { toast("Enter a number"); return; }
+  customOpen = null;
+  logSet(exId, parseInt(setIdx, 10), n);
+}
+
+// Enter key on the custom input logs the value.
+document.addEventListener("keydown", (e) => {
+  const inp = e.target.closest && e.target.closest("[data-custom-input]");
+  if (inp && e.key === "Enter") { e.preventDefault(); submitCustom(inp.dataset.ex, inp.dataset.set); }
+});
+
 function logSet(exId, setIdx, value) {
   if (!state.currentSession) return;
   const ex = state.currentSession.exercises.find(e => e.id === exId);
   if (!ex) return;
+  const wasDone = ex.sets.every(s => s != null);
   ex.sets[setIdx] = { count: value };
+  // Exercise just became complete: collapse it so the next one moves up.
+  if (!wasDone && ex.sets.every(s => s != null)) expanded.delete(exId);
+  customOpen = null;
   saveState();
   renderExercises();
   startTimer(defaultRest);
@@ -1013,35 +1134,54 @@ function tickTimer() {
 // ============================================================
 // Sheets, editor, history
 // ============================================================
-function openSheet(id) { $("#"+id).classList.add("open"); }
-function closeSheets() { $$(".sheet").forEach(s => s.classList.remove("open")); }
+function openSheet(id) {
+  // Default the day pickers to the day you're on (or the suggested one).
+  const day = state.currentSession ? state.currentSession.day : suggestNextDay();
+  if (id === "settingsSheet") $("#editDaySel").value = day;
+  if (id === "historySheet") $("#historyDaySel").value = day;
+  const sheet = $("#" + id);
+  sheet.classList.add("open");
+  sheet.querySelector(".sheet-body").scrollTop = 0;
+  document.body.classList.add("sheet-open");
+}
+function closeSheets() {
+  $$(".sheet").forEach(s => s.classList.remove("open"));
+  document.body.classList.remove("sheet-open");
+  render(); // pick up any plan edits made in Settings
+}
 
 function renderEditor() {
   const day = $("#editDaySel").value;
   const list = $("#editList");
   const items = state.plan[day] || [];
-  list.innerHTML = items.map(p => `
+  list.innerHTML = items.map((p, i) => `
     <div class="ex-edit" data-edit="${p.id}">
-      <div class="row">
-        <input data-f="name" type="text" value="${escapeHtml(p.name)}" placeholder="Name" />
-        <input data-f="weight" type="number" step="0.5" value="${p.weight}" placeholder="Weight" />
-        <select data-f="unit">
-          <option value="lb" ${p.unit==="lb"?"selected":""}>lb</option>
-          <option value="kg" ${p.unit==="kg"?"selected":""}>kg</option>
-        </select>
-        <input data-f="sets" type="number" min="1" max="10" value="${p.sets}" />
-      </div>
-      <div class="row" style="margin-top:8px;">
-        <select data-f="count" style="grid-column: span 2;">
-          <option value="reps" ${p.count==="reps"?"selected":""}>reps</option>
-          <option value="secs" ${p.count==="secs"?"selected":""}>seconds</option>
-          <option value="steps" ${p.count==="steps"?"selected":""}>steps</option>
-          <option value="m" ${p.count==="m"?"selected":""}>meters</option>
-        </select>
+      <input class="ed-name" data-f="name" type="text" value="${escapeHtml(p.name)}" placeholder="Exercise name" />
+      <div class="ed-grid">
+        <label class="fld"><span>Weight</span>
+          <input data-f="weight" type="number" inputmode="decimal" step="0.5" value="${p.weight}" />
+        </label>
+        <label class="fld"><span>Unit</span>
+          <select data-f="unit">
+            <option value="lb" ${p.unit==="lb"?"selected":""}>lb</option>
+            <option value="kg" ${p.unit==="kg"?"selected":""}>kg</option>
+          </select>
+        </label>
+        <label class="fld"><span>Sets</span>
+          <input data-f="sets" type="number" inputmode="numeric" min="1" max="10" value="${p.sets}" />
+        </label>
+        <label class="fld"><span>Count</span>
+          <select data-f="count">
+            <option value="reps" ${p.count==="reps"?"selected":""}>reps</option>
+            <option value="secs" ${p.count==="secs"?"selected":""}>secs</option>
+            <option value="steps" ${p.count==="steps"?"selected":""}>steps</option>
+            <option value="m" ${p.count==="m"?"selected":""}>meters</option>
+          </select>
+        </label>
       </div>
       <div class="actions">
-        <button data-mv="-1">Up</button>
-        <button data-mv="1">Down</button>
+        <button data-mv="-1" ${i === 0 ? "disabled style='opacity:.35'" : ""}>&uarr; Up</button>
+        <button data-mv="1" ${i === items.length - 1 ? "disabled style='opacity:.35'" : ""}>&darr; Down</button>
         <button class="del" data-del>Delete</button>
       </div>
     </div>
